@@ -28,7 +28,7 @@ def get_polarity_model():
     # For both sets of scores: -1 most extreme negative, +1 most extreme positive
     analyzer = SentimentIntensityAnalyzer()
     
-    def score_polarity(content: str) -> Dict[str, float]:
+    def score_polarity(content: str) -> dict:
         """Compute blob and vader polarity for the supplied string"""
         blob_score = TextBlob(content).sentiment.polarity
         vader_score = analyzer.polarity_scores(content)['compound']
@@ -42,7 +42,7 @@ def get_sentiment_model():
     """Return the vader sentiment model or a mock function in debug mode"""
     analyzer = SentimentIntensityAnalyzer()
 
-    def score_sentiment(content: str) -> Dict[str, float]:
+    def score_sentiment(content: str) -> dict:
         """Compute bart and vader sentiment scores for the supplied string"""
         # TODO: Add BART sentiment model and combine here
         sentiment_scores = analyzer.polarity_scores(content)

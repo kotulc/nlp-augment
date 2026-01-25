@@ -1,7 +1,7 @@
 from app.models.sentiment import get_sentiment_model
 from app.models.general import get_document_model
 
-from data.samples import SAMPLE_TEXT, NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT
+from app.core.common.text import SAMPLE_TEXT, NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT
 
 
 # Define sentiment class constant

@@ -4,12 +4,12 @@ from app.models.general import get_document_model
 from app.models.keyword import get_keyword_model
 from app.settings import get_settings
 
-from data.samples import SAMPLE_TEXT
+from app.core.common.text import SAMPLE_TEXT
 
 
 # Define module level constants
 settings = get_settings()
-TAG_PROMPTS = settings.models.tags
+TAG_PROMPTS = settings.model.prompts.tag
 
 # Get module level variables
 doc_model = get_document_model()

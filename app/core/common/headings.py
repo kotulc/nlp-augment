@@ -5,11 +5,11 @@ from app.core.common.relevance import composite_scores
 from app.models.general import get_document_model
 from app.settings import get_settings
 
-from data.samples import SAMPLE_TEXT
+from app.core.common.text import SAMPLE_TEXT
 
 # Extract module-level constants from settings
 settings = get_settings()
-HEADING_PROMPTS = settings.models.headings.model_dump()
+MODEL_PROMPTS = settings.model.prompts.model_dump()
 
 # Define module-level variables
 doc_model = get_document_model()
@@ -17,14 +17,14 @@ doc_model = get_document_model()
 
 def get_headings(content: str, heading: str, top_n: int) -> tuple[list, list]:
     """Generate a list of short heading summaries for the supplied content"""
-    if not heading in HEADING_PROMPTS:
+    if not heading in MODEL_PROMPTS:
         raise ValueError(f"Supplied heading type '{heading}' is not a supported value.")
     
     # Define common generation kwargs
     generation_kwargs = dict(format="list", max_new_tokens=top_n * 12)
 
     candidates = []
-    for prompt in HEADING_PROMPTS[heading][:-1]:
+    for prompt in MODEL_PROMPTS[heading][:-1]:
         # Generate candidate tiles for each prompt
         candidates += generate_summary(content=content, prompt=prompt, **generation_kwargs)
 
@@ -32,7 +32,7 @@ def get_headings(content: str, heading: str, top_n: int) -> tuple[list, list]:
     title_content = " ".join(candidates)
 
     # Add some more variety detached from the source content
-    re_prompt = HEADING_PROMPTS[heading][-1]
+    re_prompt = MODEL_PROMPTS[heading][-1]
     candidates += generate_summary(content=title_content, prompt=re_prompt, **generation_kwargs)
     candidates, scores = composite_scores(content=content, candidates=candidates)
 
@@ -76,7 +76,7 @@ def get_outline(content: str, n_sections: int=3) -> list:
     for section in sections:
         # Generate candidate summaries for each prompt
         section_candidates = []
-        for prompt in HEADING_PROMPTS["description"][:-1]:
+        for prompt in MODEL_PROMPTS["description"][:-1]:
             section_candidates += generate_summary(content=section, prompt=prompt, **generation_kwargs)
         
         # Score and select the top_n descriptions for each section
@@ -92,7 +92,7 @@ def demo_headings():
     """Test the heading and section outline generation functionality"""
     print("\n=== Generate Headings ===")
     n_sections, top_n = 3, 5
-    for heading in HEADING_PROMPTS.keys():
+    for heading in MODEL_PROMPTS.keys():
         result = get_headings(SAMPLE_TEXT, heading=heading, top_n=top_n)
         print(f"\nGenerated {heading}s:", result)
 

@@ -1,4 +1,3 @@
-import tomllib
 import yaml
 
 from functools import lru_cache
@@ -48,6 +47,15 @@ class DatabaseSettings(BaseSettings):
     connect_args: dict = {"check_same_thread": False}
 
 # Define Transformers generation settings 
+class PromptSettings(BaseSettings):
+    """Define default keyword arguments for Transformers generation"""
+    template: str = Field(default="{prompt}:\n\nText: {content}\n\n{delimiter}") 
+    title: list[str] = Field(default=HEADING_PROMPTS["title"], min_length=4)
+    subtitle: list[str] = Field(default=HEADING_PROMPTS["subtitle"], min_length=4)
+    description: list[str] = Field(default=HEADING_PROMPTS["description"], min_length=4)
+    tag: list[str] = Field(default=TAGS_PROMPTS, min_length=3)
+
+# Define Transformers generation settings 
 class TransformersSettings(BaseSettings):
     """Define default keyword arguments for Transformers generation"""
     max_new_tokens: int = 128
@@ -63,12 +71,8 @@ class ModelSettings(BaseSettings):
     # Also tested with "microsoft/Phi-4-mini-instruct" 
     language_model: str = "google/gemma-3-1b-it"
     transformers: TransformersSettings = Field(default_factory=TransformersSettings)
-    prompt_template: str = Field(default="{prompt}:\n\nText: {content}\n\n{delimiter}") 
-    title_prompts: list[str] = Field(default=HEADING_PROMPTS["title"], min_length=4)
-    subtitle_prompts: list[str] = Field(default=HEADING_PROMPTS["subtitle"], min_length=4)
-    description_prompts: list[str] = Field(default=HEADING_PROMPTS["description"], min_length=4)
-    tag_prompts: list[str] = Field(default=TAGS_PROMPTS, min_length=3)
-    
+    prompts: PromptSettings = Field(default_factory=PromptSettings)
+
     @classmethod
     def from_yaml(cls, path: str):
         with open(path, "r") as f:
@@ -81,9 +85,7 @@ class ApplicationSettings(BaseSettings):
     # Load variables from a .env file if it exists
     model_config = SettingsConfigDict(env_file='.env')
     name: str = "NLP Service"
-
-    with open(Path(__file__).parent.parent / "pyproject.toml", "rb") as f:
-        version: str = tomllib.load(f)["project"]["version"]
+    version: str = "0.0.1"
     
     # Get database settings
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)

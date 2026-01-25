@@ -2,7 +2,7 @@ import numpy
 
 from app.models.sentiment import get_spam_model, get_toxicity_model
 
-from data.samples import SPAM_TEXT, HAM_TEXT, NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
+from app.core.common.text import SPAM_TEXT, HAM_TEXT, NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
 
 
 # Get pre-trained toxicity and spam detection models

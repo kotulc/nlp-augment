@@ -2,14 +2,14 @@ import re
 
 from app.settings import get_settings
 from app.models.generative import get_generative_model
-from data.samples import SAMPLE_TEXT
+from app.core.common.text import SAMPLE_TEXT
 
 
 # Extract constants from settings
 settings = get_settings()
-DEFAULT_MODEL = settings.models.generative
-DEFAULT_TEMPLATE = settings.models.template
-DEFAULT_KWARGS = settings.models.transformers.model_dump()
+DEFAULT_MODEL = settings.model.language_model
+DEFAULT_TEMPLATE = settings.model.prompts.template
+DEFAULT_KWARGS = settings.model.transformers.model_dump()
 
 # Load the tokenizer and model
 generator = get_generative_model()

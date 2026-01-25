@@ -4,7 +4,7 @@ from textblob import TextBlob
 
 from app.models.general import get_classifier_model
 
-from data.samples import NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
+from app.core.common.text import NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
 
 
 # Define elements of literary analysis
