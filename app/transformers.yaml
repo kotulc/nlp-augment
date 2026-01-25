@@ -22,7 +22,7 @@ tags:
 
 template: "{prompt}:\n\nText: {content}\n\n{delimiter}"
 
-generative: google/gemma-3-1b-it
+language: google/gemma-3-1b-it
 
 transformers:
   max_new_tokens: 32

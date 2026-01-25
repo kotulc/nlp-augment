@@ -1,6 +1,6 @@
 import pytest
 
-from app.core.summary.summary import get_summary, SUMMARY_TYPES
+from app.core.summary import get_summary, SUMMARY_TYPES
 
 
 def test_summary():

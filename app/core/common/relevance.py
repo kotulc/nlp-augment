@@ -2,8 +2,8 @@ import numpy
 
 from sklearn.metrics.pairwise import cosine_similarity
 
-from app.core.models.sentiment import get_acceptability_model
-from app.core.models.utility import get_embedding_model
+from app.models.sentiment import get_acceptability_model
+from app.models.general import get_embedding_model
 
 
 # Load a model fine-tuned on the CoLA dataset for linguistic acceptability scoring

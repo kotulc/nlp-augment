@@ -1,11 +1,11 @@
 import numpy
 
-from app.core.summary.generate import generate_summary
-from app.core.models.utility import get_document_model
-from app.core.utils.relevance import composite_scores
-from app.core.utils.samples import SAMPLE_TEXT
-from app.config import get_settings
+from app.core.common.generate import generate_summary
+from app.core.common.relevance import composite_scores
+from app.models.general import get_document_model
+from app.settings import get_settings
 
+from data.samples import SAMPLE_TEXT
 
 # Extract module-level constants from settings
 settings = get_settings()

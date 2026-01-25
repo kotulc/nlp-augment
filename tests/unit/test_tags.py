@@ -1,6 +1,6 @@
 import pytest
 
-from app.core.tags.tags import get_tags, TAG_TYPES
+from app.core.tags import get_tags, TAG_TYPES
 
 
 def test_tags():

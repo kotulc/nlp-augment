@@ -1,3 +1,4 @@
+import tomllib
 import yaml
 
 from functools import lru_cache
@@ -5,6 +6,9 @@ from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
+# Define path to local transformers config file
+TRANSFORMERS_PATH = Path("app/transformers.yaml")
 
 # Define some fallback default headings in case the local config is missing
 HEADING_PROMPTS = {
@@ -43,23 +47,7 @@ class DatabaseSettings(BaseSettings):
     url: str = "sqlite:///./sql_app.db"
     connect_args: dict = {"check_same_thread": False}
 
-
-# Define nested settings classes
-class HeadingsSettings(BaseSettings):
-    """Define default heading prompts"""
-    title: list[str] = Field(default=HEADING_PROMPTS["title"], min_length=4)
-    subtitle: list[str] = Field(default=HEADING_PROMPTS["subtitle"], min_length=4)
-    description: list[str] = Field(default=HEADING_PROMPTS["description"], min_length=4)
-
-
-class ModelSettings(BaseSettings):
-    """Define available and default model types"""
-    endpoints: dict = Field(default={})
-    # generative: str = "microsoft/Phi-4-mini-instruct" 
-    generative: str = "google/gemma-3-1b-it"
-
-
-
+# Define Transformers generation settings 
 class TransformersSettings(BaseSettings):
     """Define default keyword arguments for Transformers generation"""
     max_new_tokens: int = 128
@@ -69,18 +57,17 @@ class TransformersSettings(BaseSettings):
     top_p: float = 0.9
     top_k: int = 50
 
-
 # Define function default argument settings yaml class
 class ModelSettings(BaseSettings):
     """Define default keyword argument for core functions"""
-    headings: HeadingsSettings = Field(default_factory=HeadingsSettings)
-    tags: list[str] = Field(default=TAGS_PROMPTS, min_length=3)
-    template: str = Field(default="{prompt}:\n\nText: {content}\n\n{delimiter}") 
-    models: ModelSettings = Field(default_factory=ModelSettings)
+    # Also tested with "microsoft/Phi-4-mini-instruct" 
+    language_model: str = "google/gemma-3-1b-it"
     transformers: TransformersSettings = Field(default_factory=TransformersSettings)
-    endpoints: dict = Field(default={})
-    # generative: str = "microsoft/Phi-4-mini-instruct" 
-    generative: str = "google/gemma-3-1b-it"
+    prompt_template: str = Field(default="{prompt}:\n\nText: {content}\n\n{delimiter}") 
+    title_prompts: list[str] = Field(default=HEADING_PROMPTS["title"], min_length=4)
+    subtitle_prompts: list[str] = Field(default=HEADING_PROMPTS["subtitle"], min_length=4)
+    description_prompts: list[str] = Field(default=HEADING_PROMPTS["description"], min_length=4)
+    tag_prompts: list[str] = Field(default=TAGS_PROMPTS, min_length=3)
     
     @classmethod
     def from_yaml(cls, path: str):
@@ -88,23 +75,25 @@ class ModelSettings(BaseSettings):
             data = yaml.safe_load(f)
         return cls(**data)
 
-
 # Define the application-level settings class which loads values from a .env file
 class ApplicationSettings(BaseSettings):
     """Define all application-level settings"""
     # Load variables from a .env file if it exists
     model_config = SettingsConfigDict(env_file='.env')
     name: str = "NLP Service"
-    version: str = "0.1.0"
-    debug: bool = False
 
+    with open(Path(__file__).parent.parent / "pyproject.toml", "rb") as f:
+        version: str = tomllib.load(f)["project"]["version"]
+    
+    # Get database settings
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
-
-    if Path("app/models.yaml").exists():
+    
+    # Load user transformers configurations if they exist
+    if TRANSFORMERS_PATH.exists():
         # If the defaults.yaml file exists, load default settings from it
-        models: ModelSettings = ModelSettings.from_yaml("app/models.yaml")
+        model: ModelSettings = ModelSettings.from_yaml(TRANSFORMERS_PATH)
     else:
-        models: ModelSettings = Field(default_factory=ModelSettings)
+        model: ModelSettings = Field(default_factory=ModelSettings)
 
 
 @lru_cache()

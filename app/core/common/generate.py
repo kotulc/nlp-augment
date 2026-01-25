@@ -1,8 +1,8 @@
 import re
 
-from app.config import get_settings
-from app.core.models.generative import get_generative_model
-from app.core.utils.samples import SAMPLE_TEXT
+from app.settings import get_settings
+from app.models.generative import get_generative_model
+from data.samples import SAMPLE_TEXT
 
 
 # Extract constants from settings

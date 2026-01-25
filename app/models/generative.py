@@ -1,30 +1,16 @@
 import torch
 import transformers
 
-from pydantic import BaseModel, Field
-from typing import List
-
 from functools import lru_cache
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from app.core.models.loader import ModelLoader
-
-from app.config import get_settings
+from app.settings import get_settings
 
 
 # Extract constants from settings
 settings = get_settings()
-DEFAULT_MODEL = settings.models.generative
-DEFAULT_KWARGS = settings.models.transformers.model_dump()
-
-
-# Define the generative input and output pydantic data models (for testing and validation only)
-class generativeRequest(BaseModel):
-    content: str = Field(..., description="The text context used for generation")
-
-
-class generativeResponse(BaseModel):
-    results: List[str] = Field(None, description="The generated text content")
+DEFAULT_MODEL = settings.model.language_model
+DEFAULT_KWARGS = settings.model.transformers.model_dump()
 
 
 @lru_cache(maxsize=1)
@@ -36,7 +22,7 @@ def get_generative_model():
     generator = transformers.pipeline("text-generation", model=model, tokenizer=tokenizer)
     default_kwargs = DEFAULT_KWARGS.copy()
 
-    def get_model_inference(content: str, **kwargs) -> List[str]:
+    def get_model_inference(content: str, **kwargs) -> list:
         """Return generated text from the model"""
         if len(kwargs):
             model_kwargs = default_kwargs.copy()
@@ -48,8 +34,4 @@ def get_generative_model():
         sequences = generator(content, do_sample=True, return_full_text=False, **model_kwargs)
         return [sequence["generated_text"] for sequence in sequences]
 
-    return ModelLoader(
-        model_key="generator",
-        default_callable=get_model_inference,
-        debug_callable=lambda *args, **kwargs: ["Mock generated content"]
-    )
+    return get_model_inference

@@ -1,21 +1,7 @@
 import keybert
 import yake
 
-from pydantic import BaseModel, Field
-from typing import List, Tuple
-
 from functools import lru_cache
-
-from app.core.models.loader import ModelLoader
-
-
-# Define the generative input and output pydantic data models (for testing and validation only)
-class keywordRequest(BaseModel):
-    content: str = Field(..., description="The text to extract keywords from")
-
-
-class keywordResponse(BaseModel):
-    results: List[str] = Field(None, description="The extracted keyword and score pairs")
 
 
 @lru_cache(maxsize=1)
@@ -41,7 +27,6 @@ def get_keyword_model(top_n: int=10):
             use_mmr=False
         )
         bert_keywords = [phrase for phrase, score in bert_keywords]
-
         yake_keywords = yake_extractor.extract_keywords(content)
         yake_keywords = [phrase for phrase, score in yake_keywords]
 
@@ -49,8 +34,4 @@ def get_keyword_model(top_n: int=10):
         keywords = bert_keywords + yake_keywords
         return list({k.lower() for k in keywords})
     
-    return ModelLoader(
-        model_key="keybert",
-        default_callable=extract_keywords,
-        debug_callable=lambda *args, **kwargs: ["keyword1", "keyword2"]
-    )
+    return extract_keywords

@@ -1,7 +1,7 @@
 import pytest
 
-from app.core.models import loader
-from app.core.models import sentiment, generative, keyword, utility
+from app.models import loader
+from app.models import sentiment, generative, keyword, utility
 
 
 # Define mock inputs for testing

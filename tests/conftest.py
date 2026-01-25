@@ -1,7 +1,5 @@
 import pytest
-from app.config import get_settings
-import app.core.models.loader as loader
-
+from app.settings import get_settings
 
 @pytest.fixture(autouse=True)
 def enable_debug_models(monkeypatch):
