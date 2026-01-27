@@ -2,7 +2,7 @@ import pytest
 
 from fastapi.testclient import TestClient
 from app.main import app
-from app.core.metrics.metrics import METRIC_TYPES
+from app.core.metrics import METRIC_TYPES
 
 
 def test_metrics():

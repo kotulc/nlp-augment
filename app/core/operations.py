@@ -35,7 +35,7 @@ def get_metrics(content: str, metrics: list=None) -> dict:
     metrics = metrics if metrics else list(METRIC_TYPES.keys())
     for metric in metrics:
         if metric in METRIC_TYPES:
-            results[metric] = {metric: METRIC_TYPES[metric](content)}
+            results[metric] = METRIC_TYPES[metric](content)
     # Return a dict of all requested metrics
     return results
 
@@ -63,7 +63,7 @@ def get_tags(content: str, min_length: int=1, max_length: int=3, top_n: int=10) 
     # Return a dict of lists (tags, scores)
     return dict(tags=tags, scores=scores)
 
-
+# TODO: Update get methods to accept dependencies
 def get_result(operation: str, dependencies: dict, request: dict) -> dict:
     """Return a dictionary of results from the specified operation"""
     content = request.get("content", "")

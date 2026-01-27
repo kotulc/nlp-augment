@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.core.summary.summary import SUMMARY_TYPES
+from app.core.operations import SUMMARY_TYPES
 
 
 client = TestClient(app)

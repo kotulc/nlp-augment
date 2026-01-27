@@ -1,6 +1,5 @@
 from app.core.metrics import polarity, sentiment, spam, style
-from app.core.summary import headings, generate
-from app.core.tags import extract
+from app.core.common import headings, generate, extract
 
 
 def test_polarity():

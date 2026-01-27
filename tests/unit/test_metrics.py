@@ -1,6 +1,6 @@
 import pytest
 
-from app.core.metrics.metrics import get_metrics, METRIC_TYPES
+from app.core.operations import get_metrics, METRIC_TYPES
 
 
 def test_metrics():
