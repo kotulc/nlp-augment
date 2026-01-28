@@ -9,14 +9,14 @@ polarity_model = get_polarity_model()
 doc_model = get_document_model()
 
 
-def score_polarity(content: str) -> dict:
+def score_polarity(content: str) -> dict[str, float]:
     """Compute blob and vader polarity for the supplied string"""
     # For both sets of scores: -1 most extreme negative, +1 most extreme positive
     doc = doc_model(content)
-    return round(polarity_model(doc.text)['score'], 4)
+    return dict(polarity=round(polarity_model(doc.text)['score'], 4))
 
 
-def sentence_polarity(content: str) -> list:
+def sentence_polarity(content: str) -> dict[str, list]:
     """Compute blob and vader polarity for each sentence in the supplied string"""
     doc = doc_model(content)
 
@@ -27,7 +27,7 @@ def sentence_polarity(content: str) -> list:
         sentence_list.append(sentence_text)
         score_list.append(round(polarity_model(sentence_text)['score'], 4))
 
-    return sentence_list, score_list
+    return dict(sentences=sentence_list, scores=score_list)
 
 
 # Example usage and testing function
@@ -45,12 +45,13 @@ def demo_polarity():
         
     print("\n== Sentence Polarity ===")
     print(f"\nText: sample_text")
+
     # Textblob and vader_score polarity scores range from [-1.0, 1.0] with 1 being the most positive
-    sentences, scores = sentence_polarity(SAMPLE_TEXT)
+    polarity_dict = sentence_polarity(SAMPLE_TEXT)
     
     # Format document sentence in a more readable way
     print(f"Sentence Polarity:")
-    for s, score in zip(sentences, scores):
+    for s, score in zip(polarity_dict['sentences'], polarity_dict['scores']):
         clean_text = "'" + " ".join(s.strip().split())[:60] + "...':"
         print(f"{clean_text:<64}", score)
 

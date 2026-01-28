@@ -12,13 +12,13 @@ sentiment_model = get_sentiment_model()
 doc_model = get_document_model()
 
 
-def score_sentiment(content: str) -> dict:
+def score_sentiment(content: str) -> dict[str, float]:
     """Compute bart and vader sentiment scores for the supplied string"""
     doc = doc_model(content)
     return sentiment_model(doc.text)
 
 
-def sentence_sentiment(content: str) -> tuple[list]:
+def sentence_sentiment(content: str) -> dict[str, list]:
     """Compute bart and vader sentiment scores for each sentence in the supplied string"""
     doc = doc_model(content)
 
@@ -28,7 +28,7 @@ def sentence_sentiment(content: str) -> tuple[list]:
         sentence_list.append(sentence.text)
         score_list.append(sentiment_model(sentence.text))
 
-    return sentence_list, score_list
+    return dict(sentences=sentence_list, scores=score_list)
 
 
 # Example usage and testing function
@@ -45,9 +45,9 @@ def demo_sentiment():
         
     print("\n== Sentence Sentiment ===")
     print(f"\nText: sample_text")
-    sentences, scores = sentence_sentiment(SAMPLE_TEXT)
+    sentiment_dict = sentence_sentiment(SAMPLE_TEXT)
     print(f"Sentence Sentiment:")
-    for s, score in zip(sentences, scores):
+    for s, score in zip(sentiment_dict['sentences'], sentiment_dict['scores']):
         clean_text = "'" + " ".join(s.strip().split())[:60] + "...':"
         print(f"{clean_text:<64}", score)
 
