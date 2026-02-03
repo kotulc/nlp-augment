@@ -2,10 +2,10 @@ import pytest
 
 from fastapi.testclient import TestClient
 from app.main import app
-from app.core.metrics import METRIC_TYPES
+from app.core.operations import METRIC_TYPES
 
 
-def test_metrics():
+def test_metrics_route():
     """Confirm only 'content' argument is required"""
     payload = {"content": "Test content for metrics."}
     client = TestClient(app)
@@ -22,11 +22,11 @@ def test_metrics():
 
 
 @pytest.mark.parametrize("metric_type", [m for m in METRIC_TYPES])
-def test_metrics_single_type(metric_type: str):
+def test_metrics_route_single_type(metric_type: str):
     """Test each metric type individually"""
     payload = {
         "content": "Test content for metrics.",
-        "metrics": [metric_type]
+        "parameters": {"metrics": [metric_type]}
     }
     client = TestClient(app)
     response = client.post("/metrics/", json=payload)
@@ -39,18 +39,18 @@ def test_metrics_single_type(metric_type: str):
     
     for metric in METRIC_TYPES.keys():
         if metric != metric_type:
-            assert data["result"][metric] is None
+            assert not metric in data["result"]
 
 
 @pytest.mark.parametrize("metric_types", [
     [m for m in METRIC_TYPES],
     [m for m in METRIC_TYPES][:2],
 ])
-def test_metrics_multiple_types(metric_types: list):
+def test_metrics_route_multiple_types(metric_types: list):
     """Test multiple metric types at once"""
     payload = {
         "content": "Test content for metrics.",
-        "metrics": metric_types
+        "parameters": {"metrics": metric_types}
     }
     client = TestClient(app)
     response = client.post("/metrics/", json=payload)
@@ -63,6 +63,6 @@ def test_metrics_multiple_types(metric_types: list):
 
 
 if __name__ == "__main__":
-    test_metrics()
-    test_metrics_single_type("diction")
-    test_metrics_multiple_types([m for m in METRIC_TYPES][:2])
+    test_metrics_route()
+    test_metrics_route_single_type("diction")
+    test_metrics_route_multiple_types([m for m in METRIC_TYPES][:2])

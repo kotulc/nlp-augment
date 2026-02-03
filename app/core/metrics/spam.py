@@ -12,7 +12,7 @@ toxicity_classifier = get_toxicity_model()
 
 def score_spam(content: str) -> dict:
     """Compute spam scores for the supplied text content"""
-    score = round(spam_classifier(content)['score'], 4)
+    score = round(float(spam_classifier(content)['score']), 4)
     label = "ham" if score < 0.5 else "spam"
     return dict(score=score, label=label)
 
@@ -20,7 +20,7 @@ def score_spam(content: str) -> dict:
 def score_toxicity(content: str) -> dict:
     """Compute toxicity scores for the supplied text content"""
     # Simply apply the toxicity classifier to the input
-    score = round(toxicity_classifier(content)['score'], 4)
+    score = round(float(toxicity_classifier(content)['score']), 4)
     label = "neutral" if score < 0.5 else "toxic"
     return dict(score=score, label=label)
 

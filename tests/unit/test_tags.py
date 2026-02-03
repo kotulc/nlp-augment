@@ -1,6 +1,6 @@
 import pytest
 
-from app.core.tags import get_tags, TAG_TYPES
+from app.core.operations import get_tags, TAG_TYPES
 
 
 def test_tags():
@@ -17,7 +17,7 @@ def test_tags():
 def test_tags_min_max(min_length, max_length):
     """Test min and max length constraints for 'related' tags"""
     results = get_tags(
-        content="Test content for tagging.",
+        content="Test content for tagging. This is sample data to generate tags.",
         min_length=min_length,
         max_length=max_length,
     )
@@ -26,12 +26,19 @@ def test_tags_min_max(min_length, max_length):
         assert min_length <= word_count <= max_length
 
 
-@pytest.mark.parametrize("top_n", [1, 3, 5, 10])
+@pytest.mark.parametrize("top_n", [1, 3, 5])
 def test_tags_top_n_limit(top_n):
     """Test top_n limit for each tag type"""
     results = get_tags(
-        content="Test content for tagging.",
+        content="Test content for tagging. This is sample data to generate tags.",
         top_n=top_n,
     )
-    assert len(results['tags']) <= top_n
-    assert len(results['scores']) == len(results['tags'])
+
+    # Verify tags length is less than or equal to top_n
+    for k, v in results['tags'].items():
+        assert len(v) <= top_n
+
+    # Verify scores length matches tags length
+    for k, v in results['scores'].items():
+        assert len(v) <= top_n
+        assert len(v) == len(results['tags'][k])

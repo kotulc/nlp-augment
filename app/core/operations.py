@@ -40,7 +40,7 @@ def get_metrics(content: str, metrics: list=None) -> dict:
     return results
 
 
-def get_summary(content: str, summary: str, **kwargs) -> tuple:
+def get_summary(content: str, summary: str='description', **kwargs) -> tuple:
     """Return a dictionary of entities, keywords, and related topic tags"""
     summaries, scores = [], []
     # Get requested summary type

@@ -47,7 +47,7 @@ def maximal_marginal_relevance(content: str, candidates: list, sim_lambda=0.5, t
     available_candidates = list(zip(candidates, candidate_embeddings, similarities))
     selected_index = numpy.argmax(similarities)
     selected = [available_candidates[selected_index]]
-    scores = [similarities[selected_index]]
+    scores = [float(similarities[selected_index].item())]
     available_candidates.pop(selected_index)
 
     for _ in range(top_n):
@@ -61,7 +61,7 @@ def maximal_marginal_relevance(content: str, candidates: list, sim_lambda=0.5, t
         # Select the next best candidate and remove it from the pool
         mmr_scores = numpy.array(mmr_scores).flatten()
         selected_index = numpy.argmax(mmr_scores)
-        scores.append(mmr_scores[selected_index].item())
+        scores.append(float(mmr_scores[selected_index].item()))
         selected.append(available_candidates[selected_index])
         available_candidates.pop(selected_index)
 

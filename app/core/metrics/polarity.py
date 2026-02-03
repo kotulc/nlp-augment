@@ -13,7 +13,7 @@ def score_polarity(content: str) -> dict[str, float]:
     """Compute blob and vader polarity for the supplied string"""
     # For both sets of scores: -1 most extreme negative, +1 most extreme positive
     doc = doc_model(content)
-    return dict(polarity=round(polarity_model(doc.text)['score'], 4))
+    return dict(polarity=round(float(polarity_model(doc.text)['score']), 4))
 
 
 def sentence_polarity(content: str) -> dict[str, list]:
@@ -25,7 +25,7 @@ def sentence_polarity(content: str) -> dict[str, list]:
         # For both sets of scores: -1 most extreme negative, +1 most extreme positive
         sentence_text = sentence.text
         sentence_list.append(sentence_text)
-        score_list.append(round(polarity_model(sentence_text)['score'], 4))
+        score_list.append(round(float(polarity_model(sentence_text)['score']), 4))
 
     return dict(sentences=sentence_list, scores=score_list)
 

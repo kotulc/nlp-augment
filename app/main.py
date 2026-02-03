@@ -1,12 +1,9 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 
-from app.database import init_database
-
 from app.core.operations import get_result
+from app.database.database import init_database
 from app.schema import OperationRequest, OperationResponse
-
-
 from app.settings import get_settings
 
 
@@ -47,17 +44,24 @@ app = FastAPI(
     lifespan=lifespan, 
     title=USER_SETTINGS.name, 
     version=USER_SETTINGS.version, 
-    debug=USER_SETTINGS.debug
 )
 
 @app.post("/", response_model=OperationResponse)
-async def post_metrics(request: OperationRequest):
+async def post_health(request: OperationRequest):
     """Return a response including the metrics of the specified request types"""
     return OperationResponse(success=True, result={"message": "Welcome to the NLP Service API!"})
 
-# Define all available core routes below:
-for route_prefix in ['metrics', 'summary', 'tags']:
-    @app.post(f"/{route_prefix}/", response_model=OperationResponse)
-    async def post_metrics(request: OperationRequest, configs: dict=Depends(get_route_configs)):
-        """Return a response including the metrics of the specified request types"""
-        return handle_response(route_prefix, request, configs.get(route_prefix, {}))
+@app.post(f"/metrics/", response_model=OperationResponse)
+async def post_metrics(request: OperationRequest, configs: dict=Depends(get_route_configs)):
+    """Return a response including the metrics of the specified request types"""
+    return handle_response('metrics', request, configs)
+
+@app.post(f"/summary/", response_model=OperationResponse)
+async def post_summary(request: OperationRequest, configs: dict=Depends(get_route_configs)):
+    """Return a response including the metrics of the specified request types"""
+    return handle_response('summary', request, configs)
+
+@app.post(f"/tags/", response_model=OperationResponse)
+async def post_tags(request: OperationRequest, configs: dict=Depends(get_route_configs)):
+    """Return a response including the metrics of the specified request types"""
+    return handle_response('tags', request, configs)
