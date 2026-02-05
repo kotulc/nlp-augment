@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlmodel import Field, SQLModel
 
 
+# TODO: Refactor models based on Page/Section/Content hierarchy
 # Define base content class
 class BaseSQLModel(SQLModel):
     id: int | None = Field(default=None, primary_key=True)
@@ -66,3 +67,11 @@ class Tag(BaseSQLModel):
     content: int = Field(foreign_key='content.id')
     selected: bool = Field(default=False)
     score: float
+
+
+class Operation(BaseSQLModel, table=True):
+    """API operation request and response record"""
+    operation: str = Field(min_length=1, max_length=32, index=True)
+    success: bool = Field(default=True)
+    result: str = Field(default="{}")  # JSON string
+    metadata: str = Field(default="{}")  # JSON string
