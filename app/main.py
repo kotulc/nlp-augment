@@ -1,11 +1,10 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
-import json
 import logging
 
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, Depends
+
 from app.core.operations import get_result
-from app.crud.database import init_database, store_result
-from app.crud.tables import Operation
+from app.crud.database import init_database, update_database
 from app.schemas import MetricsRequest, MetricsResponse, SummaryRequest, SummaryResponse, TagsRequest, TagsResponse
 from app.settings import get_settings
 
@@ -26,23 +25,21 @@ def get_route_configs() -> dict:
     """Return the retrieved user settings"""
     return USER_SETTINGS
 
+# TODO: Update return values to reflect response types
 # Define a general request handling method 
 def handle_response(operation: str, request: dict, configs: dict) -> dict:
     """Supply user request and app configs to the requested operation"""
     # Define BaseResponse return values
-    success, result, meta = True, {}, {}
+    record = {}
     try:
-        # Get all requested operations results
+        # Get all requested operations results and store them in the database
         result = get_result(operation, configs, request.model_dump())
-        # Store operation result in the database
-        store_result(operation, result)
+        record = update_database(operation, result)
     except Exception as e:
         # Handle all exceptions
-        meta[type(e).__name__] = str(e)
-        success = False
-        logger.exception("Operation %s failed", operation)
+        logger.exception(f"Operation {operation} failed: {type(e).__name__} - {str(e)}")
 
-    return dict(id=request.id, success=success, result=result, metadata=meta)
+    return record
 
 
 # Initialize the FastAPI app instance

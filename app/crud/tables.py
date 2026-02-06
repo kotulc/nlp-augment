@@ -1,77 +1,65 @@
 from datetime import datetime
+from enum import Enum
+from typing import Optional, List, Dict, Any
+from uuid import UUID, uuid4
+
+from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Column, DateTime, Text, String
+from sqlalchemy.dialects.postgresql import UUID as PGUUID, JSONB, BYTEA
+
+from datetime import datetime
 from sqlmodel import Field, SQLModel
 
-
-# TODO: Refactor models based on Page/Section/Content hierarchy
-# Define base content class
-class BaseSQLModel(SQLModel):
-    id: int | None = Field(default=None, primary_key=True)
-    visible: bool = Field(default=True, description="The visibility status of the record")
-    created_at: datetime = Field(
-        default_factory=datetime.utcnow, 
-        description="The record creation timestamp"
-        nullable=False
-    )
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        sa_column_kwargs={"onupdate": datetime.utcnow},
-        description="The record last updated timestamp"
-        nullable=False
-    )
+from app.schemas.tags import TagsEnum
 
 
-class Document(BaseSQLModel, table=True):
-    """Markdown document"""
-    name: str = Field(min_length=1, max_length=255, index=True)
-    title: str = Field(min_length=1, max_length=255)
-    published: str | None = Field(default=None, min_length=1, max_length=255)
-    source: str | None = Field(default=None, min_length=1, max_length=255)
+class Metric(SQLModel, table=True):
+    __tablename__ = "metrics"
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    section_id: UUID = Field(foreign_key="sections.id", index=True, nullable=False)
+    metric: str = Field(..., index=True, nullable=False)
+    value: float = Field(..., nullable=False)
+    recorded_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
 
+class SectionTypeEnum(str, Enum):
+    heading = "heading"
+    paragraph = "paragraph"
+    list = "list"
+    table = "table"
+    figure = "figure"
+    
+class SectionTag(SQLModel, table=True):
+    __tablename__ = "section_tags"
+    section_id: UUID = Field(foreign_key="sections.id", primary_key=True)
+    tag_name: str = Field(foreign_key="tags.name", primary_key=True)
+    relevance: float = Field(..., nullable=False)
+    position: Optional[int] = Field(default=None, nullable=False)
 
-class Section(BaseSQLModel, table=True):
-    """Document section headings"""
-    name: str = Field(min_length=1, max_length=255, index=True)
-    title: str = Field(min_length=1, max_length=255)
-    document: int | None = Field(default=None, foreign_key="document.id")
-    parent: int | None = Field(default=None, foreign_key="section.id")
+class Section(SQLModel, table=True):
+    __tablename__ = "sections"
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    document_id: UUID = Field(foreign_key="documents.id", index=True, nullable=False)
+    content: str = Field(..., sa_column=Column(Text, nullable=False))
+    type: SectionTypeEnum = Field(..., nullable=False)
+    level: Optional[int] = Field(default=None)
+    position: Optional[int] = Field(default=None)
+    metadata: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
+    metrics: List[Metric] = Relationship(back_populates="section")
 
+class Tag(SQLModel, table=True):
+    __tablename__ = "tags"
+    name: str = Field(primary_key=True)
+    category: TagsEnum = Field(..., sa_column=Column(String(64), nullable=False))
+    sections: List[Section] = Relationship(back_populates="tags", link_model=SectionTag)
 
-class Content(BaseSQLModel):
-    """Document, section or paragraph"""
-    content: str = Field(min_length=1, max_length=255)
-    document: int | None = Field(default=None, foreign_key="document.id")
-    section: int | None = Field(default=None, foreign_key="section.id")
-    parent: int | None = Field(default=None, foreign_key="content.id")
-
-
-class Metric(BaseSQLModel):
-    """Computed or derived composite metric"""
-    category: str = Field(min_length=1, max_length=32, index=True)
-    content: int = Field(foreign_key='content.id')
-    score: float
-
-
-class Summary(BaseSQLModel):
-    """Generated content title, subtitle, or outline scored by relevance"""
-    summary: str = Field(min_length=1, max_length=255)
-    category: str = Field(min_length=1, max_length=32, index=True)
-    content: int = Field(foreign_key='content.id')
-    selected: bool = Field(default=False)
-    score: float
-
-
-class Tag(BaseSQLModel):
-    """A single unique content relevance scored tag"""
-    tag: str = Field(min_length=1, max_length=64)
-    category: str = Field(min_length=1, max_length=32, index=True) 
-    content: int = Field(foreign_key='content.id')
-    selected: bool = Field(default=False)
-    score: float
-
-
-class Operation(BaseSQLModel, table=True):
-    """API operation request and response record"""
-    operation: str = Field(min_length=1, max_length=32, index=True)
-    success: bool = Field(default=True)
-    result: str = Field(default="{}")  # JSON string
-    metadata: str = Field(default="{}")  # JSON string
+class Document(SQLModel, table=True):
+    __tablename__ = "documents"
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    slug: str = Field(..., index=True, unique=True, nullable=False)
+    markdown: str = Field(..., sa_column=Column(Text, nullable=False))
+    content_hash: str = Field(..., sa_column=Column(String(64), nullable=False))
+    frontmatter: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
+    metadata: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
+    created_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
+    updated_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
+    sections: List[Section] = Relationship(back_populates="document")
