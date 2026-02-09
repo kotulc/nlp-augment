@@ -17,7 +17,7 @@ class Metric(SQLModel, table=True):
     __tablename__ = "metrics"
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     section_id: UUID = Field(foreign_key="sections.id", index=True, nullable=False)
-    metric: str = Field(..., index=True, nullable=False)
+    name: str = Field(..., index=True, nullable=False)
     value: float = Field(..., nullable=False)
     recorded_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
 
