@@ -62,16 +62,3 @@ def get_tags(content: str, min_length: int=1, max_length: int=3, top_n: int=10) 
     scores = dict(entities=entity_scores, keywords=keyword_scores, related=related_scores)
     # Return a dict of lists (tags, scores)
     return dict(tags=tags, scores=scores)
-
-# TODO: Update get methods to accept dependencies
-def get_result(operation: str, dependencies: dict, request: dict) -> dict:
-    """Return a dictionary of results from the specified operation"""
-    content = request.get("content", "")
-    parameters = request.get("parameters", {})
-    match operation:
-        case "metrics":
-            return get_metrics(content, **parameters)
-        case "summary":
-            return get_summary(content, **parameters)
-        case "tags":
-            return get_tags(content, **parameters)

@@ -13,21 +13,28 @@ from sqlmodel import Field, SQLModel
 from app.schemas.tags import TagsEnum
 
 
-class Metric(SQLModel, table=True):
-    __tablename__ = "metrics"
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    section_id: UUID = Field(foreign_key="sections.id", index=True, nullable=False)
-    name: str = Field(..., index=True, nullable=False)
-    value: float = Field(..., nullable=False)
-    recorded_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
-
 class SectionTypeEnum(str, Enum):
     heading = "heading"
     paragraph = "paragraph"
     list = "list"
     table = "table"
     figure = "figure"
-    
+
+
+class Metric(SQLModel, table=True):
+    __tablename__ = "metrics"
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    section_id: UUID = Field(default=None, foreign_key="sections.id", index=True, nullable=True)
+    content: str = Field(..., sa_column=Column(Text, nullable=False))
+    name: str = Field(..., index=True, nullable=False)
+    value: float = Field(..., nullable=False)
+    recorded_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
+
+class Tag(SQLModel, table=True):
+    __tablename__ = "tags"
+    name: str = Field(primary_key=True)
+    category: TagsEnum = Field(..., sa_column=Column(String(64), nullable=False))
+
 class SectionTag(SQLModel, table=True):
     __tablename__ = "section_tags"
     section_id: UUID = Field(foreign_key="sections.id", primary_key=True)
@@ -44,13 +51,8 @@ class Section(SQLModel, table=True):
     level: Optional[int] = Field(default=None)
     position: Optional[int] = Field(default=None)
     metadata: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
-    metrics: List[Metric] = Relationship(back_populates="section")
-
-class Tag(SQLModel, table=True):
-    __tablename__ = "tags"
-    name: str = Field(primary_key=True)
-    category: TagsEnum = Field(..., sa_column=Column(String(64), nullable=False))
-    sections: List[Section] = Relationship(back_populates="tags", link_model=SectionTag)
+    metrics: List[Metric] = Relationship(back_populates="sections")
+    tags: List[Tag] = Relationship(back_populates="sections", link_model=SectionTag)
 
 class Document(SQLModel, table=True):
     __tablename__ = "documents"

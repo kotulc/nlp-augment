@@ -8,14 +8,12 @@ from app.crud.database import init_database, get_session
 from app.schemas.metrics import MetricsRequest, MetricsResponse
 from app.schemas.summary import SummaryRequest, SummaryResponse
 from app.schemas.tags import TagsRequest, TagsResponse
-from app.services.operations import handle_request
+from app.services.orchestration import handle_request
 from app.settings import get_settings
 
 
 # Load application settings (model configs, prompts, etc.)
 USER_SETTINGS = get_settings()
-logger = logging.getLogger(__name__)
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
