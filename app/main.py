@@ -23,7 +23,7 @@ async def lifespan(app: FastAPI):
 
 # Return user settings for now, override this as needed
 def get_route_configs() -> dict:
-    """Return the retrieved user settings"""
+    """Return the current user settings"""
     return USER_SETTINGS
 
 

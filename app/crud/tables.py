@@ -20,7 +20,6 @@ class SectionTypeEnum(str, Enum):
     table = "table"
     figure = "figure"
 
-
 class Metric(SQLModel, table=True):
     __tablename__ = "metrics"
     id: UUID = Field(default_factory=uuid4, primary_key=True)
@@ -50,7 +49,6 @@ class Section(SQLModel, table=True):
     type: SectionTypeEnum = Field(..., nullable=False)
     level: Optional[int] = Field(default=None)
     position: Optional[int] = Field(default=None)
-    metadata: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
     metrics: List[Metric] = Relationship(back_populates="sections")
     tags: List[Tag] = Relationship(back_populates="sections", link_model=SectionTag)
 
@@ -61,7 +59,6 @@ class Document(SQLModel, table=True):
     markdown: str = Field(..., sa_column=Column(Text, nullable=False))
     content_hash: str = Field(..., sa_column=Column(String(64), nullable=False))
     frontmatter: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
-    metadata: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
     created_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
     updated_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
     sections: List[Section] = Relationship(back_populates="document")

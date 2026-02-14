@@ -39,7 +39,6 @@ def get_metrics(content: str, metrics: list=None) -> dict:
     # Return a dict of all requested metrics
     return results
 
-
 def get_summary(content: str, summary: str='description', **kwargs) -> tuple:
     """Return a dictionary of entities, keywords, and related topic tags"""
     summaries, scores = [], []
@@ -49,7 +48,6 @@ def get_summary(content: str, summary: str='description', **kwargs) -> tuple:
         summaries, scores = summary_function(content, **kwargs)
     # Return a dict of lists (summaries, scores)
     return dict(summaries=summaries, scores=scores)
-
 
 def get_tags(content: str, min_length: int=1, max_length: int=3, top_n: int=10) -> dict:
     """Return a dictionary of entities, keywords, and related topic tags"""

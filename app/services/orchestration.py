@@ -1,8 +1,8 @@
 """Orchestrator for handling API requests: call core operations, dispatch to CRUD handlers, manage transactions."""
 
 import logging
-from typing import Any
 
+from typing import Any
 from sqlmodel import Session
 
 from app.crud.metrics import handle_metrics_request
@@ -16,6 +16,7 @@ REGISTRY: dict[str, callable] = {
     "summary": None,
     "tags": None,
 }
+
 
 def handle_request(operation: str, request: Any, configs: dict, session: Session) -> dict:
     """Orchestrate a request: call handler and manage the transaction.
