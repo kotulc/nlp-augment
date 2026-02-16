@@ -5,7 +5,7 @@ from uuid import UUID, uuid4
 
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, DateTime, Text, String
-from sqlalchemy.dialects.postgresql import UUID as PGUUID, JSONB, BYTEA
+from sqlalchemy.orm import Mapped
 
 from datetime import datetime
 from sqlmodel import Field, SQLModel
@@ -20,6 +20,19 @@ class SectionTypeEnum(str, Enum):
     table = "table"
     figure = "figure"
 
+
+class Document(SQLModel, table=True):
+    __tablename__ = "documents"
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    slug: str = Field(..., index=True, unique=True, nullable=False)
+    markdown: str = Field(..., sa_column=Column(Text, nullable=False))
+    content_hash: str = Field(..., sa_column=Column(String(64), nullable=False))
+    frontmatter: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(Text, nullable=True))
+    created_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
+    updated_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
+    sections: Mapped[List["Section"]] = Relationship(back_populates="document")
+
+
 class Metric(SQLModel, table=True):
     __tablename__ = "metrics"
     id: UUID = Field(default_factory=uuid4, primary_key=True)
@@ -28,11 +41,8 @@ class Metric(SQLModel, table=True):
     name: str = Field(..., index=True, nullable=False)
     value: float = Field(..., nullable=False)
     recorded_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
+    section: Mapped[Optional["Section"]] = Relationship(back_populates="metrics")
 
-class Tag(SQLModel, table=True):
-    __tablename__ = "tags"
-    name: str = Field(primary_key=True)
-    category: TagsEnum = Field(..., sa_column=Column(String(64), nullable=False))
 
 class SectionTag(SQLModel, table=True):
     __tablename__ = "section_tags"
@@ -40,6 +50,7 @@ class SectionTag(SQLModel, table=True):
     tag_name: str = Field(foreign_key="tags.name", primary_key=True)
     relevance: float = Field(..., nullable=False)
     position: Optional[int] = Field(default=None, nullable=False)
+
 
 class Section(SQLModel, table=True):
     __tablename__ = "sections"
@@ -49,16 +60,13 @@ class Section(SQLModel, table=True):
     type: SectionTypeEnum = Field(..., nullable=False)
     level: Optional[int] = Field(default=None)
     position: Optional[int] = Field(default=None)
-    metrics: List[Metric] = Relationship(back_populates="sections")
-    tags: List[Tag] = Relationship(back_populates="sections", link_model=SectionTag)
+    document: Mapped[Optional[Document]] = Relationship(back_populates="sections")
+    metrics: Mapped[List[Metric]] = Relationship(back_populates="section")
+    tags: Mapped[List["Tag"]] = Relationship(back_populates="sections", link_model=SectionTag)
 
-class Document(SQLModel, table=True):
-    __tablename__ = "documents"
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    slug: str = Field(..., index=True, unique=True, nullable=False)
-    markdown: str = Field(..., sa_column=Column(Text, nullable=False))
-    content_hash: str = Field(..., sa_column=Column(String(64), nullable=False))
-    frontmatter: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(JSONB))
-    created_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
-    updated_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
-    sections: List[Section] = Relationship(back_populates="document")
+
+class Tag(SQLModel, table=True):
+    __tablename__ = "tags"
+    name: str = Field(primary_key=True)
+    category: TagsEnum = Field(..., sa_column=Column(String(64), nullable=False))
+    sections: Mapped[List[Section]] = Relationship(back_populates="tags", link_model=SectionTag)
