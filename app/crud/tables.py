@@ -35,10 +35,8 @@ class Document(SQLModel, table=True):
 
 class Metric(SQLModel, table=True):
     __tablename__ = "metrics"
-    id: UUID = Field(default_factory=uuid4, primary_key=True)
-    section_id: UUID = Field(default=None, foreign_key="sections.id", index=True, nullable=True)
-    content: str = Field(..., sa_column=Column(Text, nullable=False))
-    name: str = Field(..., index=True, nullable=False)
+    section_id: UUID = Field(..., foreign_key="sections.id", primary_key=True)
+    name: str = Field(..., primary_key=True)
     value: float = Field(..., nullable=False)
     recorded_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
     section: Mapped[Optional["Section"]] = Relationship(back_populates="metrics")
@@ -57,9 +55,10 @@ class Section(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     document_id: UUID = Field(foreign_key="documents.id", index=True, nullable=False)
     content: str = Field(..., sa_column=Column(Text, nullable=False))
-    type: SectionTypeEnum = Field(..., nullable=False)
-    level: Optional[int] = Field(default=None)
-    position: Optional[int] = Field(default=None)
+    type: str = Field(..., nullable=False)
+    hidden: bool = Field(default=False, nullable=False)
+    level: Optional[int] = Field(default=None, description="Heading level for section type 'heading'")
+    position: Optional[int] = Field(default=None, description="Position of the section within the document")
     document: Mapped[Optional[Document]] = Relationship(back_populates="sections")
     metrics: Mapped[List[Metric]] = Relationship(back_populates="section")
     tags: Mapped[List["Tag"]] = Relationship(back_populates="sections", link_model=SectionTag)
