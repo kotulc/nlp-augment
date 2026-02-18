@@ -1,24 +1,35 @@
 import pytest
 
 from fastapi.testclient import TestClient
+from unittest.mock import patch
+from uuid import uuid4, UUID
+
 from app.main import app
 from app.core.operations import METRIC_TYPES
 
 
-def test_metrics_route():
-    """Confirm only 'content' argument is required"""
-    payload = {"content": "Test content for metrics."}
-    client = TestClient(app)
-    response = client.post("/metrics/", json=payload)
+@pytest.fixture
+def sample_section_id() -> str:
+    """Provide a consistent section UUID for tests"""
+    return str(uuid4())
+
+
+@pytest.fixture
+def sample_metric_request(sample_section_id: str) -> dict:
+    """Return a sample metric request payload"""
+    return dict(section_id=sample_section_id, content="Test content for metrics", metrics=None)
+
+
+def test_metrics_route(test_client: TestClient, sample_metric_request: dict):
+    """Verify a standard request returns the expected response"""
+    response = test_client.post("/metrics/", json=sample_metric_request)
     assert response.status_code == 200
 
     data = response.json()
-    assert data["success"] is True
-    assert "result" in data
-    assert "metadata" in data
-
-    for metric in METRIC_TYPES.keys():
-        assert metric in data["result"]
+    assert "results" in data
+    assert len(data["results"]) == len(METRIC_TYPES)
+    assert set(data["results"].keys()) == set(METRIC_TYPES.keys())
+    assert all(isinstance(value, float) for value in data["results"].values())
 
 
 @pytest.mark.parametrize("metric_type", [m for m in METRIC_TYPES])

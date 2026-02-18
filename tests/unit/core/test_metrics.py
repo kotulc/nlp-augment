@@ -5,7 +5,7 @@ from app.core.operations import get_metrics, METRIC_TYPES
 
 def test_metrics():
     """Confirm only 'content' argument is required"""
-    results = get_metrics(content="Test content for metrics.")
+    results = compute_metrics(content="Test content for metrics.")
     for metric in METRIC_TYPES.keys():
         assert metric in results
 
@@ -13,7 +13,7 @@ def test_metrics():
 @pytest.mark.parametrize("metric_type", [m for m in METRIC_TYPES])
 def test_metrics_single_type(metric_type: str):
     """Test each metric type individually"""
-    results = get_metrics(content="Test content for metrics.", metrics=[metric_type])
+    results = compute_metrics(content="Test content for metrics.", metrics=[metric_type])
     for metric in METRIC_TYPES.keys():
         if metric != metric_type:
             assert not metric in results
@@ -29,7 +29,7 @@ def test_metrics_single_type(metric_type: str):
 ])
 def test_metrics_multiple_types(metric_types: list):
     """Test multiple metric types at once"""
-    results = get_metrics(content="Test content for metrics.", metrics=metric_types)
+    results = compute_metrics(content="Test content for metrics.", metrics=metric_types)
     for metric in metric_types:
         assert metric in results
         assert isinstance(results[metric], dict)

@@ -33,17 +33,17 @@ def handle_request(operation: str, request: Any, configs: dict, session: Session
     Raises:
         Exception: propagates from core operations or CRUD handlers
     """
-    result = {}
+    response = {}
 
     try:
         # Dispatch to registered handler and optionally persist to DB
         request_handler = REGISTRY.get(operation)
-        result = request_handler(session, request, configs)
+        response = request_handler(session, request, configs)
         LOGGER.info(f"Operation {operation} completed successfully.")
 
     except Exception as e:
-        LOGGER.exception(f"Operation {operation} failed: {type(e).__name__} - {str(e)}")
+        LOGGER.exception(f"Operation '{operation}' failed: {type(e).__name__} - {str(e)}")
         session.rollback()
 
     session.close()
-    return result
+    return response

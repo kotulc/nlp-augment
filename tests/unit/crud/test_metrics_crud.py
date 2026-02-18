@@ -50,6 +50,47 @@ def sample_metric(sample_metric_kwargs: dict) -> dict:
     return Metric(**sample_metric_kwargs)
 
 
+class TestGetMetricRecord:
+    """Tests for get_metric_record function"""
+
+    def test_get_metric_existing(self, test_db_session: Session, sample_metric: Metric):
+        """Test retrieving an existing metric by section and name"""
+        # Add a new metric to the database
+        test_db_session.add(sample_metric)
+        test_db_session.commit()
+
+        # Attempt to retreive the metric
+        result = get_metric(test_db_session, sample_metric.section_id, sample_metric.name)
+
+        # Verify a matching record is returned
+        assert result is not None
+        assert result.section_id == sample_metric.section_id
+        assert result.name == sample_metric.name
+        assert result.value == sample_metric.value
+
+    def test_get_metric_nonexistent(self, test_db_session: Session, sample_section_id: UUID):
+        """Test retrieving a non-existent metric returns None"""
+        # Attempt to get a non-existent metric
+        result = get_metric(test_db_session, sample_section_id, "nonexistent")
+
+        assert result is None
+
+    def test_get_metric_section(self, test_db_session: Session, sample_section_id: UUID):
+        """Test that metrics from different sections are isolated"""
+        # Generate a metric for a different section
+        new_seection_id = uuid4()
+        add_metric(test_db_session, sample_section_id, "sentiment", 0.4)
+        add_metric(test_db_session, new_seection_id, "sentiment", 0.7)
+        test_db_session.commit()
+
+        # Attempt to retrive a metric for the original section
+        first_record = get_metric(test_db_session, sample_section_id, "sentiment")
+        second_record = get_metric(test_db_session, new_seection_id, "sentiment")
+
+        assert first_record.value == 0.4
+        assert second_record.value == 0.7
+
+
 class TestAddMetric:
     """Tests for add_metric function"""
 
@@ -136,47 +177,6 @@ class TestDeleteMetric:
         assert get_metric(test_db_session, sample_section_id, "tone") is not None
 
 
-class TestGetMetricRecord:
-    """Tests for get_metric_record function"""
-
-    def test_get_metric_existing(self, test_db_session: Session, sample_metric: Metric):
-        """Test retrieving an existing metric by section and name"""
-        # Add a new metric to the database
-        test_db_session.add(sample_metric)
-        test_db_session.commit()
-
-        # Attempt to retreive the metric
-        result = get_metric(test_db_session, sample_metric.section_id, sample_metric.name)
-
-        # Verify a matching record is returned
-        assert result is not None
-        assert result.section_id == sample_metric.section_id
-        assert result.name == sample_metric.name
-        assert result.value == sample_metric.value
-
-    def test_get_metric_nonexistent(self, test_db_session: Session, sample_section_id: UUID):
-        """Test retrieving a non-existent metric returns None"""
-        # Attempt to get a non-existent metric
-        result = get_metric(test_db_session, sample_section_id, "nonexistent")
-
-        assert result is None
-
-    def test_get_metric_section(self, test_db_session: Session, sample_section_id: UUID):
-        """Test that metrics from different sections are isolated"""
-        # Generate a metric for a different section
-        new_seection_id = uuid4()
-        add_metric(test_db_session, sample_section_id, "sentiment", 0.4)
-        add_metric(test_db_session, new_seection_id, "sentiment", 0.7)
-        test_db_session.commit()
-
-        # Attempt to retrive a metric for the original section
-        first_record = get_metric(test_db_session, sample_section_id, "sentiment")
-        second_record = get_metric(test_db_session, new_seection_id, "sentiment")
-
-        assert first_record.value == 0.4
-        assert second_record.value == 0.7
-
-
 class TestListSectionMetrics:
     """Tests for list_section_metrics function"""
 
@@ -226,11 +226,13 @@ class TestHandleMetricsRequest:
         result = handle_metrics_request(test_db_session, request, {})
         
         # Check returned records
-        assert all(isinstance(m, Metric) for m in result)
+        assert all(isinstance(m, Metric) for m in result.values())
         assert len(result) == len(metric_dict)
-        assert {m.name for m in result} == set(metric_dict.keys())
-        assert {m.value for m in result} == set(metric_dict.values())
-
+        assert {k for k in result.keys()} == set(metric_dict.keys())
+        assert {m.value for m in result.values()} == set(metric_dict.values())
+        for k, v in result.items():
+            assert k == v.name
+        
         # Verify persisted
         result = list_section_metrics(test_db_session, sample_section_id)
         assert len(result) == len(metric_dict)
@@ -252,7 +254,7 @@ class TestHandleMetricsRequest:
 
         # Assert: same record ID, updated value
         assert len(result) == 1
-        assert result[0].value == 0.8
+        assert result["sentiment"].value == 0.8
         assert len(list_section_metrics(test_db_session, sample_section_id)) == 1
 
     @patch("app.crud.metrics.get_metrics")
@@ -263,7 +265,7 @@ class TestHandleMetricsRequest:
         request = MetricsRequest(section_id=sample_section_id, content="Content", metrics=None)
         result = handle_metrics_request(test_db_session, request, {})
 
-        assert result == []
+        assert result == {}
 
     @patch("app.crud.metrics.get_metrics")
     def test_handle_metrics_request_metrics(self, mock_get_metrics, test_db_session: Session, sample_section_id: UUID):

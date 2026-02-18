@@ -1,10 +1,10 @@
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List
 from uuid import UUID
 
 from sqlmodel import Session, select
 
-from app.core.operations import get_metrics
+from app.core.operations import compute_metrics
 from app.crud.tables import Metric
 from app.schemas.metrics import MetricsRequest
 
@@ -54,17 +54,18 @@ def list_section_metrics(session: Session, section_id: UUID) -> List[Metric]:
     return session.exec(statement).all()
 
 
-def handle_metrics_request(session: Session, request: MetricsRequest, configs: dict) -> List[Metric]:
+def handle_metrics_request(session: Session, request: MetricsRequest, configs: dict) -> Dict[str, float]:
     """Compute metrics using core.get_metrics and upsert them for the given section.
 
     If no session is provided, this helper will open its own `Session(engine)`.
     Returns the list of Metric records objects.
     """
-    results = get_metrics(request.content, request.metrics)
-    records: List[Metric] = []
+    results = compute_metrics(request.content, request.metrics)
+    metrics: Dict[str, float] = {}
     
-    for name, value in results.items():
-        metric = add_metric(session, request.section_id, name, value)
-        records.append(metric)
+    for metric_dict in results.values():
+        for name, value in metric_dict.items():
+            metric = add_metric(session, request.section_id, name, value)
+            metrics[name] = metric.value
     
-    return records
+    return dict(id=str(request.section_id), results=metrics, status="created")
