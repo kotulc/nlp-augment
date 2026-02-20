@@ -1,6 +1,15 @@
 from app.core.metrics import polarity, sentiment, spam, style
 from app.core.common.headings import get_title, get_subtitle, get_description, get_outline
 from app.core.common.extract import extract_entities, extract_keywords, extract_related
+from app.core.metrics.sentiment import SENTIMENT_CLASSES
+from app.core.metrics.style import DICTION_LABELS, GENRE_LABELS, MODE_LABELS, TONE_LABELS
+
+
+# Combine all metric keys into a single set for reference
+SENTIMENT_KEYS = set(SENTIMENT_CLASSES.values())
+SPAM_METRICS = {'polarity', 'toxicity', 'spam'}
+STYLE_METRICS = set(DICTION_LABELS + GENRE_LABELS + MODE_LABELS + TONE_LABELS)
+METRIC_KEYS = SENTIMENT_KEYS.union(STYLE_METRICS).union(SPAM_METRICS)
 
 
 METRIC_TYPES = {
