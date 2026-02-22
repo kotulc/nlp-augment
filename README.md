@@ -1,2 +1,2 @@
-# nlp-metrics
+# nlp-augment
 API-based service for text metrics
