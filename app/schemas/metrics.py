@@ -1,23 +1,27 @@
+from enum import Enum
 from pydantic import BaseModel, Field
-from typing import Dict
+from typing import Dict, List
+from uuid import UUID
 
-from app.schemas.schemas import BaseRequest, BaseResponse
+from app.schemas.response import BaseResponse
 
 
-class MetricsResult(BaseModel):
-    diction: Dict[str, float] | None = Field(default=None, description="The diction category scores")
-    genre: Dict[str, float] | None = Field(default=None, description="The genre category scores")
-    mode: Dict[str, float] | None = Field(default=None, description="The mode category scores")
-    tone: Dict[str, float] | None = Field(default=None, description="The tone category scores")
-    sentiment: Dict[str, float] | None = Field(default=None, description="The sentiment category scores")
-    polarity: Dict[str, float] | None = Field(default=None, description="The content polarity score")
-    toxicity: Dict[str, float] | None = Field(default=None, description="The content toxcity score")
-    spam: Dict[str, float] | None = Field(default=None, description="The content spam score")
+class MetricsEnum(str, Enum):
+    diction = "diction"
+    genre = "genre"
+    mode = "mode"
+    tone = "tone"
+    sentiment = "sentiment"
+    polarity = "polarity"
+    toxicity = "toxicity"   
+    spam = "spam"
+
+
+class MetricsRequest(BaseModel):
+    section_id: UUID = Field(..., description="The section id to associate with the supplied content")
+    content: str = Field(..., description="The text content to summarize")
+    metrics: List[MetricsEnum] | None = Field(default=None, description="The type of metrics to compute")
 
 
 class MetricsResponse(BaseResponse):
-    result: MetricsResult = Field(..., description="The computed metrics of each requested type")
-
-
-class MetricsRequest(BaseRequest):
-    metrics: list[str] | None = Field(None, description="Return the metrics of the supplied types")
+    results: Dict[str, float] = Field(..., description="The result of the metrics operation")

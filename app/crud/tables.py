@@ -1,0 +1,71 @@
+from datetime import datetime
+from enum import Enum
+from typing import Optional, List, Dict, Any
+from uuid import UUID, uuid4
+
+from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Column, DateTime, Text, String
+from sqlalchemy.orm import Mapped
+
+from datetime import datetime
+from sqlmodel import Field, SQLModel
+
+from app.schemas.tags import TagsEnum
+
+
+class SectionTypeEnum(str, Enum):
+    heading = "heading"
+    paragraph = "paragraph"
+    list = "list"
+    table = "table"
+    figure = "figure"
+
+
+class Document(SQLModel, table=True):
+    __tablename__ = "documents"
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    slug: str = Field(..., index=True, unique=True, nullable=False)
+    markdown: str = Field(..., sa_column=Column(Text, nullable=False))
+    content_hash: str = Field(..., sa_column=Column(String(64), nullable=False))
+    frontmatter: Optional[Dict[str, Any]] = Field(default=None, sa_column=Column(Text, nullable=True))
+    created_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
+    updated_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
+    sections: Mapped[List["Section"]] = Relationship(back_populates="document")
+
+
+class Metric(SQLModel, table=True):
+    __tablename__ = "metrics"
+    section_id: UUID = Field(..., foreign_key="sections.id", primary_key=True)
+    name: str = Field(..., primary_key=True)
+    value: float = Field(..., nullable=False)
+    recorded_at: datetime = Field(default_factory=datetime.now, sa_column=Column(DateTime(timezone=False), nullable=False))
+    section: Mapped[Optional["Section"]] = Relationship(back_populates="metrics")
+
+
+class SectionTag(SQLModel, table=True):
+    __tablename__ = "section_tags"
+    section_id: UUID = Field(foreign_key="sections.id", primary_key=True)
+    tag_name: str = Field(foreign_key="tags.name", primary_key=True)
+    relevance: float = Field(..., nullable=False)
+    position: Optional[int] = Field(default=None, nullable=False)
+
+
+class Section(SQLModel, table=True):
+    __tablename__ = "sections"
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    document_id: UUID = Field(foreign_key="documents.id", index=True, nullable=False)
+    content: str = Field(..., sa_column=Column(Text, nullable=False))
+    type: str = Field(..., nullable=False)
+    hidden: bool = Field(default=False, nullable=False)
+    level: Optional[int] = Field(default=None, description="Heading level for section type 'heading'")
+    position: Optional[int] = Field(default=None, description="Position of the section within the document")
+    document: Mapped[Optional[Document]] = Relationship(back_populates="sections")
+    metrics: Mapped[List[Metric]] = Relationship(back_populates="section")
+    tags: Mapped[List["Tag"]] = Relationship(back_populates="sections", link_model=SectionTag)
+
+
+class Tag(SQLModel, table=True):
+    __tablename__ = "tags"
+    name: str = Field(primary_key=True)
+    category: TagsEnum = Field(..., sa_column=Column(String(64), nullable=False))
+    sections: Mapped[List[Section]] = Relationship(back_populates="tags", link_model=SectionTag)

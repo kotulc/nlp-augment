@@ -2,19 +2,24 @@ from enum import Enum
 from pydantic import BaseModel, Field
 from typing import Dict, List
 
-from app.schemas.schemas import BaseResponse, BaseRequest
+from app.schemas.response import BaseResponse
 
 
-class TagResult(BaseModel):
-    tags: Dict[str, List[str]] = Field(..., description="The tags extracted from the supplied content")
-    scores: Dict[str, List[float]] = Field(..., description="The scores for each returned tag")
+class TagsEnum(str, Enum):
+    entities = "entities"
+    keywords = "keywords"
+    related = "related"
 
+class TagsRequest(BaseModel):
+    content: str = Field(..., description="The text content to summarize")
+    tags: List[TagsEnum] | None = Field(default_factory=List, description="The type of tags to extract")
+    min_length: int | None = Field(default=1, description="The minimum length of related tags to extract")
+    max_length: int | None = Field(default=3, description="The maximum length of related tags to extract")
+    top_n: int | None = Field(default=10, description="The maximum number of strings to extract")
 
-class TagResponse(BaseResponse):
-    result: TagResult = Field(..., description="The returned tags and their scores")
-    
+class TagsResults(BaseModel):
+    tags: Dict[str, list] = Field(..., description="A list of extracted tags of each requested type")
+    scores: Dict[str, list] = Field(..., description="A list of similarity scores for each tag type")
 
-class TagRequest(BaseRequest):
-    max_length: int | None = Field(None, description="Return related tags with max_length or fewer words")
-    min_length: int | None = Field(None, description="Return related tags with min_length or greater words")
-    top_n: int | None = Field(None, description="Return the top N tags of each type")
+class TagsResponse(BaseResponse):
+    results: TagsResults = Field(..., description="The result of the summary operation")

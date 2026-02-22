@@ -2,8 +2,9 @@ import numpy
 
 from textblob import TextBlob
 
-from app.core.models.utility import get_classifier_model
-from app.core.utils.samples import NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
+from app.models.general import get_classifier_model
+
+from app.core.common.text import NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
 
 
 # Define elements of literary analysis
@@ -17,44 +18,35 @@ TONE_LABELS = ['dogmatic', 'subjective', 'neutral', 'objective', 'impartial']
 classifier = get_classifier_model()
 
 
-def classify_content(content: str, labels: list, multi_label=False) -> list:
+def classify_content(content: str, labels: list, multi_label=False) -> dict[str, float]:
     """Return the zero-shot classification scores in the order of the supplied labels"""
     # NOTE: If more than one label can be correct, set multi_label=True
     result = classifier(content, candidate_labels=labels, multi_label=multi_label)
-    scores = {label: score for label, score in zip(result['labels'], result['scores'])} 
+    scores = dict(zip(labels, [round(float(v), 4) for v in result]))
 
     # Return scores in the order the labels were provided
-    return [scores[k] for k in labels]
+    return scores
 
 
-def score_diction(content: str) -> tuple[(list, str)]:
+def score_diction(content: str) -> dict[str, float]:
     """Return the zero-shot classification scores for diction"""
     # Zero-shot diction score (ideally this uses a fine-tuned a model)
-    result = classifier(content, DICTION_LABELS)
-    scores = dict(zip(DICTION_LABELS, [round(float(v), 4) for v in result]))
-
-    return scores, DICTION_LABELS[numpy.argmax(result)]
+    return classify_content(content, DICTION_LABELS)
 
 
-def score_genre(content: str) -> tuple[(list, str)]:
+def score_genre(content: str) -> dict[str, float]:
     """Return the zero-shot classification scores for genre"""
     # Zero-shot genre score (ideally this uses a fine-tuned a model)
-    result = classifier(content, GENRE_LABELS)
-    scores = dict(zip(GENRE_LABELS, [round(float(v), 4) for v in result]))
-
-    return scores, GENRE_LABELS[numpy.argmax(result)]
+    return classify_content(content, GENRE_LABELS)
 
 
-def score_mode(content: str) -> tuple[(list, str)]:
+def score_mode(content: str) -> dict[str, float]:
     """Return the zero-shot classification scores for style"""
     # Zero-shot style score (ideally this uses a fine-tuned a model)
-    result = classifier(content, MODE_LABELS)
-    scores = dict(zip(MODE_LABELS, [round(float(v), 4) for v in result]))
-    
-    return scores, MODE_LABELS[numpy.argmax(result)]
+    return classify_content(content, MODE_LABELS)
 
 
-def score_tone(content: str) -> tuple[(list, str)]:
+def score_tone(content: str) -> dict[str, float]:
     """Return the zero-shot classification and textblob scores for subjectivity (tone)"""
     # Textblob subjectvitiy scores range [0.0, 1.0] with 1.0 being highly subjective
     blob_score = TextBlob(content).sentiment.subjectivity
@@ -74,7 +66,7 @@ def score_tone(content: str) -> tuple[(list, str)]:
     result = (result + distribution) / numpy.sum(result + distribution)
     scores = dict(zip(TONE_LABELS, [round(float(v), 4) for v in result]))
 
-    return scores, TONE_LABELS[numpy.argmax(result)]
+    return scores
 
 
 # Example usage and testing function
@@ -88,20 +80,20 @@ def demo_style():
         print(f"\nText: {content_label}")
         
         # Diction score and label
-        scores, label = score_diction(content)
-        print("Diction score:", scores, "Label:", label)
+        scores = score_diction(content)
+        print("Diction scores:", scores)
 
         # Genre score and label
-        scores, label = score_genre(content)
-        print("Genre score:", scores, "Label:", label)
+        scores = score_genre(content)
+        print("Genre scores:", scores)
 
         # Mode score and label
-        scores, label = score_mode(content)
-        print("Mode score:", scores, "Label:", label)
+        scores = score_mode(content)
+        print("Mode scores:", scores)
 
         # Subjectivity score and label
-        scores, label = score_tone(content)
-        print("Tone score:", scores, "Label:", label)
+        scores = score_tone(content)
+        print("Tone scores:", scores)
 
 
 if __name__ == "__main__":
