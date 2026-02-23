@@ -6,7 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
+# Agentic stuff
+AGENTS.md
+
 # Distribution / packaging
+.github/
 .Python
 build/
 develop-eggs/

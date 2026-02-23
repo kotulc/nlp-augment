@@ -4,7 +4,7 @@ import transformers
 from functools import lru_cache
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from app.settings import get_settings
+from app.config import get_settings
 
 
 # Extract constants from settings

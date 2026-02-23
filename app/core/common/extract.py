@@ -2,7 +2,7 @@ from app.core.common.generate import generate_summary
 from app.core.common.relevance import maximal_marginal_relevance, semantic_similarity
 from app.models.general import get_document_model
 from app.models.keyword import get_keyword_model
-from app.settings import get_settings
+from app.config import get_settings
 
 from app.core.common.text import SAMPLE_TEXT
 

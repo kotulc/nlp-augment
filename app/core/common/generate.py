@@ -1,6 +1,6 @@
 import re
 
-from app.settings import get_settings
+from app.config import get_settings
 from app.models.generative import get_generative_model
 from app.core.common.text import SAMPLE_TEXT
 
