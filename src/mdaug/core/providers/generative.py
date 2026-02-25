@@ -4,7 +4,7 @@ import transformers
 from functools import lru_cache
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-from app.config import get_settings
+from src.mdaug.core.config import get_settings
 
 
 # Extract constants from settings

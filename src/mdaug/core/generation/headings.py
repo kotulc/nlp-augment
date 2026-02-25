@@ -1,11 +1,11 @@
 import numpy
 
-from app.core.common.generate import generate_summary
-from app.core.common.relevance import composite_scores
-from app.models.general import get_document_model
-from app.config import get_settings
+from src.core.common.generate import generate_summary
+from src.core.common.relevance import composite_scores
+from src.models.general import get_document_model
+from src.mdaug.core.config import get_settings
 
-from app.core.common.text import SAMPLE_TEXT
+from src.core.common.text import SAMPLE_TEXT
 
 # Extract module-level constants from settings
 settings = get_settings()

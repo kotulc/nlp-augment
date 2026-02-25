@@ -25,20 +25,19 @@ content → compute metrics, summarize, extract tags → relational JSON
 [High-level description of interface commands go here, what form does user inputs take?]
 
 ```
+mdaug compute         # Run all operations and return the aggretate results
 mdaug analyze         # Compute spam, toxicity, style and sentiment metrics
-mdaug compare         # run the entire pipeline (all of the following commands)
-mdaug rank            # initialize database schema and optionally clears stored data
-mdaug summarize       # recursively extract blocks, frontmatter, and content hash
-mdaug tag             # initialize database schema and optionally clears stored data
+mdaug compare         # Pairwise comparison between content chunks
+mdaug rank            # Rank content chunks by similarity, releveance, or composite metrics
+mdaug summarize       # Generate content summaries in a specified format
+mdaug tag             # Extract content keywords and related tags
 ```
-
-`<path>` is a single directory (recursively scanned)
 
 
 ## Configuration
-All settings follow a three-tier priority: **CLI option → `config.yaml` → built-in default**.
-Place a `config.yaml` in your working directory to set project-wide defaults; pass CLI options
-to override on a per-run basis.
+All settings follow a four-tier priority: **CLI option → env → `config.yaml` → default**.
+Place a `config.yaml` in your working directory to set application-wide defaults; pass CLI options
+to override on a per-run basis or set environment variables when deploying as part of a service.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
@@ -51,12 +50,34 @@ to override on a per-run basis.
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -U pip
-pip install -e ".[dev]"
+pip install -e .
 ```
 
+### Input
+Each command can take a json string as input via stdin:
+```
+[
+  {"id": "doc-001:0", "slug": "my-doc.md"},
+  {"id": "doc-001:1", "title": "Example doc"},
+  {"id": "doc-001:2", "content": "First text block."},
+  {"id": "doc-001:3", "content": "Second text block."}
+]
+```
+NOTE: The value of the "id" key is used as a reference for comparison and ranking operations
+
+
 ### Output
-For each input document, all commands produce:
+For a given input all commands return json via stdout: 
+```
+{
+  "command": "analyze",
+  "results": {...},
+  "status": "ok",
+  "errors": [],
+}
+```
+
+Results may optionally be returned as a json file with the `--out <file>` option:
 
 | File | Description |
 |------|-------------|
@@ -68,8 +89,8 @@ For each input document, all commands produce:
 nlp-mdaug/
 ├── src/mdaug/        # Main package source
 │   ├── cli/          # Command-line interface
-│   ├── core/         # Operational logic
-│   └── utils/        # Common and shared app utilities
+│   ├── common/       # Config and shared modules and utils
+│   └── core/         # Operational logic 
 ├── tests/            # Test suite (pytest)
 ├── examples/         # Sample input & output
 ├── config.yaml       # Default app-level configurations
@@ -87,26 +108,27 @@ cli/
 ```
 
 
+### common
+The common package simply contains shared modules and utilities leveraged throughout the application.
+
+```
+common/
+  sample.py           # Sample text for operation demonstrations
+  config.py           # User configuration loading and validation
+```
+
+
 ### core
 The core package contains all of the internal operational logic leveraged by the CLI commands. This includes content summarization, generation, keyword extraction, and analysis.
 
 [NOTE: This structure is currently emerging and in development -- subject to change]
 ```
 core/
-  operations/         # Implementation for compare, rank, summarize, etc.
-  relevance/          # Semantic similarity and relevance support
-  analysis/           # Sentiment analysis utilties
-  generation/         # Content generation and summarization
-  extraction/         # Keyword extraction and tagging
-```
-
-
-### utils
-The utils package simply contains common utilities leveraged throughout the application.
-
-```
-utils/
-  config.py           # User configuration loading and validation
+  analysis/           # Sentiment analysis utilties (analyze operation)
+  extraction/         # Keyword extraction and tagging (tag operation)
+  generation/         # Content generation (summarize operation)
+  providers/          # Default models and provider adapter layer
+  relevance/          # Semantic comparison and ranking (compare and rank operations)
 ```
 
 
@@ -140,7 +162,7 @@ The most important rule is to keep modules and code blocks simple and purposeful
 the argument indent (one level in from def), not back to the def column.
 
 #### Dont's
-- DO NOT vertically space lines of code unless completely necessary.
+- DO NOT list arguments vertically unless completely necessary.
 - DO NOT vertically align function arguments if they can reasonably fit on a single line.
 - DO NOT * import ANYTHING. Always explicitly import at the top of the module only.
 - DO NOT add any functionality outside the defined scope of a given module.

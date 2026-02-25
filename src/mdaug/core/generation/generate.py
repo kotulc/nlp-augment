@@ -1,8 +1,8 @@
 import re
 
-from app.config import get_settings
-from app.models.generative import get_generative_model
-from app.core.common.text import SAMPLE_TEXT
+from src.mdaug.core.config import get_settings
+from src.models.generative import get_generative_model
+from src.core.common.text import SAMPLE_TEXT
 
 
 # Extract constants from settings
