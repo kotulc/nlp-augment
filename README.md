@@ -1,13 +1,15 @@
 # nlp-mdaug
-A CLI-first tool for AI-powered NLP toolbox and augmentation engine for structured text data automatically extracting configurable metrics, generating summaries, headings and extracting tags.
+A CLI-first NLP augmentation toolkit for structured text content.
+
+`nlp-mdaug` analyzes text, generates summaries/headings, extracts tags, and returns JSON.
 
 
 ## Purpose
-This application is intended to augment ordered blocks of text-based content with natural language-based  relational and semantic information.
+This application is intended to augment collections of textcontent with AI and NLP-derived relational and semantic information with a simple and direct JSON input and output format.
 
 General Workflow:
 ```
-content → compute metrics, summarize, extract tags → relational JSON 
+JSON content → compute metrics, summarize, extract tags → JSON results 
 ```
 
 
@@ -22,16 +24,18 @@ content → compute metrics, summarize, extract tags → relational JSON
 
 
 ## Commands
-[High-level description of interface commands go here, what form does user inputs take?]
+Each command takes input in the same shape (defined below) and returns results based on the type of operation. Analysis and generation commands such as `analyze`, `extract`, `outline`, `summarize`, `tag`, and `title` will return one or more results for each supplied content item.
 
-```
-mdaug compute         # Run all operations and return the aggretate results
-mdaug analyze         # Compute spam, toxicity, style and sentiment metrics
-mdaug compare         # Pairwise comparison between content chunks
-mdaug rank            # Rank content chunks by similarity, releveance, or composite metrics
-mdaug summarize       # Generate content summaries in a specified format
-mdaug tag             # Extract content keywords and related tags
-```
+| Command | Purpose | Output Shape (Default) |
+|---------|---------|------------------------|
+| `mdaug analyze` | Compute metrics (sentiment, toxicity, etc.) |  `{metric: value, ...}` |
+| `mdaug compare` | Compare one or more text inputs | `{input: score, ...}` |
+| `mdaug extract` | Extract entities/keywords from the supplied content | `{entities: [...], ...}` |
+| `mdaug outline` | Generate an outline of the supplied conent | `{outline: "...", ...}` |
+| `mdaug rank` | Rank items against query text | `[most_relevant, ..., least_relevant]` |
+| `mdaug summarize` | Generate one or more sumamries | `{summary: "...", ...}` |
+| `mdaug tag` | Generate tags related to the supplied content | `{tags: [...], ...}` |
+| `mdaug title` | Generate one or more titles or subtitles | `{title: "...", ...}` |
 
 
 ## Configuration
