@@ -81,202 +81,185 @@ Each command directs output json to the defined output stream:
 ### Format
 All commands return JSON with the same item structure as the supplied request. If an ordered list of content is provided the results will be returned as a list of results with the same relative order. If a dictionary is provided the results will be returned as a dictionary with item keys matching each request.
 
-The examples below illustrate the simplest possible request with one or two (in the case of `rank` and `compare` operations) supplied content item.
+The examples below illustrate a single result for a given content item.
 
 
-### `mdaug analyze`
+#### `mdaug analyze`
+The `analyze` command computes the scores of a set of pre-defined (customizable via `config.yaml`) metrics.
 
+Request:
 ```json
-{
-  "negative sentiment": 0.03,
-  "neutral sentiment": 0.22,
-  "positive sentiment": 0.75,
-  "polarity": 0.68,
-  "toxicity": 0.01
-}
+["Natural language processing can enrich text with summaries and tags."]
 ```
 
-
-### `mdaug compare`
-The `summarize` command 
-Input:
-
+Result:
 ```json
-{
-  "content": "Natural language processing can enrich text with summaries and tags.",
-  "kind": "description",
-  "top_n": 3
-}
-```
-
-`kind` values:
-
-- `title`
-- `summary`
-- `subtitle`
-- `description`
-- `outline`
-
-Output:
-
-```json
-{
-  "summaries": [
-    "NLP can enrich text with generated summaries and tags.",
-    "Text augmentation adds summary and tagging metadata.",
-    "Content can be transformed into structured NLP outputs."
-  ]
-}
-```
-
-Optional scored output (future / advanced mode):
-
-```json
-{
-  "summaries": [
-    {"text": "NLP can enrich text with generated summaries and tags.", "score": 0.91}
-  ]
-}
-```
-
-
-### `mdaug tag`
-
-Input:
-
-```json
-{
-  "content": "Open-source NLP tools often combine keyword extraction and summarization.",
-  "top_n": 8
-}
-```
-
-Output (simple default):
-
-```json
-{
-  "entities": [],
-  "keywords": ["NLP tools", "keyword extraction", "summarization"],
-  "related": ["text augmentation", "content analysis"]
-}
-```
-
-Optional scored output (future / advanced mode):
-
-```json
-{
-  "entities": [],
-  "keywords": [
-    {"text": "keyword extraction", "score": 0.88}
-  ],
-  "related": [
-    {"text": "content analysis", "score": 0.79}
-  ]
-}
-```
-
-
-### `mdaug compare`
-
-Input:
-
-```json
-{
-  "left": "Text summarization helps condense content.",
-  "right": "Summaries reduce long text into shorter descriptions."
-}
-```
-
-Output:
-
-```json
-{
-  "similarity": 0.84,
-  "mmr": 0.71,
-  "composite": 0.78
-}
-```
-
-
-### `mdaug rank`
-
-Input:
-
-```json
-{
-  "query": "nlp text augmentation",
-  "items": [
-    "Image segmentation workflow",
-    "Text summarization and tagging pipeline",
-    "SQL query optimization guide"
-  ],
-  "top_n": 2
-}
-```
-
-Output:
-
-```json
-{
-  "results": [
-    {"index": 1, "score": 0.93, "text": "Text summarization and tagging pipeline"},
-    {"index": 2, "score": 0.22, "text": "SQL query optimization guide"}
-  ]
-}
-```
-
-Notes:
-
-- `index` refers to the position in the input `items` list
-- Output may omit `text` later if `return_items=false` is added
-
-
-### `mdaug compute`
-
-`compute` runs multiple operations and returns one combined result.
-
-Input:
-
-```json
-{
-  "content": "NLP augmentation adds metrics, summaries, and tags to text.",
-  "ops": ["analyze", "summarize", "tag"]
-}
-```
-
-Optional per-operation overrides:
-
-```json
-{
-  "content": "NLP augmentation adds metrics, summaries, and tags to text.",
-  "ops": ["analyze", "summarize", "tag"],
-  "analyze": {"metrics": ["sentiment", "toxicity"]},
-  "summarize": {"kind": "description", "top_n": 2},
-  "tag": {"top_n": 6}
-}
-```
-
-Output:
-
-```json
-{
-  "metrics": {
-    "sentiment": {"negative": 0.02, "neutral": 0.19, "positive": 0.79},
+[
+  {
+    "negative": 0.03,
+    "neutral": 0.22,
+    "positive": 0.75,
+    "polarity": 0.68,
     "toxicity": 0.01
-  },
-  "summaries": [
-    "NLP augmentation adds structured metadata to text.",
-    "Text can be enriched with metrics, summaries, and tags."
-  ],
-  "tags": {
-    "entities": [],
-    "keywords": ["NLP augmentation", "structured metadata"],
-    "related": ["content enrichment"]
   }
+]
+```
+
+
+#### `mdaug compare`
+The `compare` command evaluate the semantic similarity between the first content item and all remaining items. The results will always contain N-1 scores since evaluating the semantic similarity of text against itself always yeilds 1.00.
+
+Request:
+```json
+[
+  "Natural language processing can enrich text with summaries and tags.",
+  "NLP can enrich text with generated summaries and tags.",
+  "Text augmentation adds summary and tagging metadata.",
+  "Content can be transformed into structured NLP outputs."
+]
+```
+
+Result:
+```json
+[
+  0.93, 
+  0.71, 
+  0.78
+]
+```
+
+
+#### `mdaug extract`
+`extract` simply extracts keywords and entities from the supplied text and returns a dictionary of extracted keys and similarity score values.
+
+Request:
+```json
+["Natural language processing can enrich text with summaries and tags."]
+```
+
+Result:
+```json
+[
+  {
+    "entities": {},
+    "keywords": {
+      "Natural": 0.78,
+      "language": 0.65,
+      "text": 0.62
+    }
+  }
+]
+```
+
+
+#### `mdaug outline`
+The `outline` command generates a list of high-level summary points and their scores for a given body of text.
+
+Request:
+```json
+[
+  "Natural language processing tools such as these can enrich text based on the defined 
+  operations. Available operations for this tool include summarization and tagging."
+]
+```
+
+Result:
+```json
+{
+  "Natural language operations": 0.85,
+  "Summarization and tagging": 0.83
 }
 ```
 
 
+#### `mdaug rank`
+The `rank` command returns results in order of a composite similarity metric along with the computed scores.
+
+Request:
+```json
+[
+  "Natural language processing can enrich text with summaries and tags.",
+  "NLP can enrich text with generated summaries and tags.",
+  "Text augmentation adds summary and tagging metadata.",
+  "Content can be transformed into structured NLP outputs."
+]
+```
+
+Result:
+```json
+{
+  "NLP can enrich text with generated summaries and tags.": 0.93,
+  "Content can be transformed into structured NLP outputs.": 0.78,
+  "Text augmentation adds summary and tagging metadata.": 0.71
+}
+```
+
+
+#### `mdaug summarize`
+The `summarize` command generates a list of summaries of the supplied content with the number of results configurable via `config.yaml`.
+
+Request:
+```json
+[
+  "Natural language processing tools such as these can enrich text based on the defined 
+  operations. Available operations for this tool include summarization and tagging."
+]
+```
+
+Result:
+```json
+{
+  "Natural language processing": 0.89,
+  "Available operations for this tool": 0.82,
+  "Operations to enrich text": 0.77,
+}
+```
+
+
+#### `mdaug tag`
+The `tag` command generates a list of related words or concepts relating to the supplied content with the number of results configurable via `config.yaml`.
+
+Request:
+```json
+[
+  "Natural language processing tools such as these can enrich text based on the defined 
+  operations. Available operations for this tool include summarization and tagging."
+]
+```
+
+Result:
+```json
+{
+  "natural language": 0.92,
+  "text": 0.90,
+  "operations": 87,
+  "tool": 0.85
+}
+```
+
+
+#### `mdaug title`
+The `title` command generates a list of potential headings for the supplied content with the number of results configurable via `config.yaml`.
+
+Request:
+```json
+[
+  "Natural language processing tools such as these can enrich text based on the defined 
+  operations. Available operations for this tool include summarization and tagging."
+]
+```
+
+Result:
+```json
+{
+  "NLP Operations and Tools": 0.97,
+  "Natural Language Operations": 0.95,
+  "Language Processing Tools": 0.89,
+}
+```
+
+
+# TODO: Finish revising CLI examples using the above input/output format
 ## CLI Examples
 
 Read from file:

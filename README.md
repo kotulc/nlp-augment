@@ -24,7 +24,7 @@ JSON content → compute metrics, summarize, extract tags → JSON results
 
 
 ## Commands
-Each command takes input in the same shape (defined below) and returns results based on the type of operation. Analysis and generation commands such as `analyze`, `extract`, `outline`, `summarize`, `tag`, and `title` will return one or more results for each supplied content item.
+Each command takes input in the same shape (defined below) and returns results based on the type of operation. All commands return a single result (as defined in the `Output` section below) for each supplied request item. 
 
 | Command | Purpose | Output Shape (Default) |
 |---------|---------|------------------------|
