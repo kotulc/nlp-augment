@@ -68,3 +68,38 @@ def test_cli_missing_input_returns_error(monkeypatch, capsys):
 
     assert exit_code == 1
     assert result["error"] == "missing_input"
+
+
+def test_cli_rejects_file_and_stdin_together(monkeypatch, tmp_path, capsys):
+    """Supplying both --file and stdin input returns an input-source error."""
+    input_path = tmp_path / "input.json"
+    input_path.write_text('["file content"]', encoding="utf-8")
+    monkeypatch.setattr("sys.stdin", io.StringIO('["stdin content"]'))
+
+    exit_code = main(["analyze", "--file", str(input_path)])
+    result = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert result["error"] == "invalid_input_source"
+
+
+def test_cli_invalid_output_path_returns_error(monkeypatch, tmp_path, capsys):
+    """Invalid --out destination returns invalid_output and non-zero exit code."""
+    monkeypatch.setattr("sys.stdin", io.StringIO('["sample"]'))
+
+    exit_code = main(["analyze", "--out", str(tmp_path)])
+    result = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert result["error"] == "invalid_output"
+
+
+def test_cli_missing_required_content_returns_error(monkeypatch, capsys):
+    """Dictionary values must be strings; null values fail validation."""
+    monkeypatch.setattr("sys.stdin", io.StringIO('{"item1": null}'))
+
+    exit_code = main(["extract"])
+    result = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert result["error"] == "invalid_input"
