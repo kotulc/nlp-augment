@@ -15,7 +15,7 @@ The CLI should be easy to use without learning a complex schema, both input and 
 
 Default behavior:
 - Generic JSON input format via stdin (small and readable)
-- Command-specific JSON output vis stdout (small and readable)
+- Command-specific JSON output via stdout (small and readable)
 
 Advanced behavior (optional, later):
 - Rich envelopes for batch jobs, tracing, partial failures, and provider metadata
@@ -23,18 +23,20 @@ Advanced behavior (optional, later):
 
 
 ## Commands
-Each command takes input in the same shape (defined below) and returns results based on the type of operation. Analysis and generation commands such as `analyze`, `extract`, `outline`, `summarize`, `tag`, and `title` will return one or more results for each supplied content item.
+Each command takes input in the same shape (defined below) and returns results based on the type
+of operation. Most commands return one result per supplied content item. `compare` and `rank`
+return set-level scored results derived from all supplied content items.
 
 | Command | Purpose | Output Shape (Default) |
 |---------|---------|------------------------|
 | `mdaug analyze` | Compute metrics (sentiment, toxicity, etc.) |  `{metric: value, ...}` |
-| `mdaug compare` | Compare the similarity of text content | `{input: score, ...}` |
-| `mdaug extract` | Extract entities/keywords from the supplied content | `{entities: [...], ...}` |
-| `mdaug outline` | Generate an outline of the supplied conent | `{outline: "...", ...}` |
-| `mdaug rank` | Rank items against query text | `[most_relevant, ..., least_relevant]` |
-| `mdaug summarize` | Generate one or more sumamries | `{summary: "...", ...}` |
-| `mdaug tag` | Generate tags related to the supplied content | `{tags: [...], ...}` |
-| `mdaug title` | Generate one or more titles or subtitles | `{title: "...", ...}` |
+| `mdaug compare` | Compare one or more text inputs | `{item_or_id: score, ...}` |
+| `mdaug extract` | Extract entities/keywords from the supplied content | `{entities: {...}, keywords: {...}}` |
+| `mdaug outline` | Generate an outline of the supplied content | `{point: score, ...}` |
+| `mdaug rank` | Rank items against query text | `{item_or_id: score, ...}` |
+| `mdaug summarize` | Generate one or more summaries | `{summary: score, ...}` |
+| `mdaug tag` | Generate tags related to the supplied content | `{tag: score, ...}` |
+| `mdaug title` | Generate one or more titles or subtitles | `{title: score, ...}` |
 
 
 ## Input
@@ -47,31 +49,54 @@ Each command accepts JSON from exactly one source:
 
 
 ### Format
-All commands expect JSON in the same basic format, a list or dictionary of the content to be supplied to the requested operation. The only difference between the two is in how results are returned: for a list results are ordered respective to the source content. If a dictionary is supplied the results will reference the keys (ids) of the content.
+All commands expect JSON in the same basic format, a list or dictionary of content for the
+requested operation. The only difference between the two is how results are returned: for a list,
+results preserve input order; for a dictionary, results reference input keys (ids).
 
+Ordered list input:
 ```json
-# Input provided as an ordered list of content strings (no key/ids to reference)
-["first content chunk to process", "second content chunk", ...]
-
-# Input provided as key-value pairs where results will reference the supplied keys
-{"content-id1": "content value1", "content-id2": "content value2", ...}
+[
+  "first content chunk to process",
+  "second content chunk to process"
+]
 ```
 
-Supplied JSON with a single level of nesting is also acceptable and interpreted as groups of individual requests. Each parent level collection will be processed in isolation from all other groups in a batch fashion. 
-
+Keyed dictionary input:
 ```json
-# Input groups may be provided as a list of lists, or list of dicts
-[{"content-id": "content value", ...}, {"content-id": "content value", ...}]
+{
+  "content-id1": "first content value",
+  "content-id2": "second content value"
+}
+```
 
-# Input provided as key-value pairs return results that reference the supplied keys
-{"group1": {"content-id": "request1 content", ...}, "group2": {"content-id": "request2 content", ...}]
+Supplied JSON with a single level of nesting is also acceptable and interpreted as groups of
+individual requests. Each parent-level collection is processed in isolation from other groups.
+
+List-of-groups input:
+```json
+[
+  ["request 1 item 1", "request 1 item 2"],
+  ["request 2 item 1", "request 2 item 2"]
+]
+```
+
+Dictionary-of-groups input:
+```json
+{
+  "group1": {
+    "content-id1": "request 1 content"
+  },
+  "group2": {
+    "content-id2": "request 2 content"
+  }
+}
 ```
 
 
 ## Output
 
 ### Destination
-Each command directs output json to the defined output stream:
+Each command directs output JSON to the defined output stream:
 
 - JSON to `stdout` by default
 - `--out <path>` writes JSON to a file
@@ -79,9 +104,11 @@ Each command directs output json to the defined output stream:
 
 
 ### Format
-All commands return JSON with the same item structure as the supplied request. If an ordered list of content is provided the results will be returned as a list of results with the same relative order. If a dictionary is provided the results will be returned as a dictionary with item keys matching each request.
+All commands return JSON with the same top-level structure as the supplied request. If an ordered
+list of content is provided, results are returned as an ordered list. If a dictionary is provided,
+results are returned as a dictionary with matching keys.
 
-The examples below illustrate a single result for a given content item.
+The examples below illustrate default output shapes for each command.
 
 
 #### `mdaug analyze`
@@ -107,7 +134,8 @@ Result:
 
 
 #### `mdaug compare`
-The `compare` command evaluate the semantic similarity between the first content item and all remaining items. The results will always contain N-1 scores since evaluating the semantic similarity of text against itself always yeilds 1.00.
+The `compare` command evaluates semantic similarity between the first content item and all
+remaining items. Results contain `N-1` scores because similarity against itself is always `1.00`.
 
 Request:
 ```json
@@ -122,8 +150,8 @@ Request:
 Result:
 ```json
 {
-  "NLP can enrich text with generated summaries and tags.": 0.93, 
-  "Content can be transformed into structured NLP outputs.": 0.78, 
+  "NLP can enrich text with generated summaries and tags.": 0.93,
+  "Content can be transformed into structured NLP outputs.": 0.78,
   "Text augmentation adds summary and tagging metadata.": 0.71
 }
 ```
@@ -158,8 +186,7 @@ The `outline` command generates a list of high-level summary points and their sc
 Request:
 ```json
 [
-  "Natural language processing tools such as these can enrich text based on the defined 
-  operations. Available operations for this tool include summarization and tagging."
+  "Natural language processing tools such as these can enrich text based on the defined operations. Available operations for this tool include summarization and tagging."
 ]
 ```
 
@@ -193,7 +220,7 @@ Result:
 {
   "NLP can enrich text with generated summaries and tags.": 0.93,
   "Text augmentation adds summary and tagging metadata.": 0.79,
-  "Content can be transformed into structured NLP outputs.": 0.65,
+  "Content can be transformed into structured NLP outputs.": 0.65
 }
 ```
 
@@ -204,8 +231,7 @@ The `summarize` command generates a list of summaries of the supplied content wi
 Request:
 ```json
 [
-  "Natural language processing tools such as these can enrich text based on the defined 
-  operations. Available operations for this tool include summarization and tagging."
+  "Natural language processing tools such as these can enrich text based on the defined operations. Available operations for this tool include summarization and tagging."
 ]
 ```
 
@@ -215,7 +241,7 @@ Result:
   {
     "Natural language processing": 0.89,
     "Available operations for this tool": 0.82,
-    "Operations to enrich text": 0.77,
+    "Operations to enrich text": 0.77
   }
 ]
 ```
@@ -227,8 +253,7 @@ The `tag` command generates a list of related words or concepts relating to the 
 Request:
 ```json
 [
-  "Natural language processing tools such as these can enrich text based on the defined 
-  operations. Available operations for this tool include summarization and tagging."
+  "Natural language processing tools such as these can enrich text based on the defined operations. Available operations for this tool include summarization and tagging."
 ]
 ```
 
@@ -251,8 +276,7 @@ The `title` command generates a list of potential headings for the supplied cont
 Request:
 ```json
 [
-  "Natural language processing tools such as these can enrich text based on the defined 
-  operations. Available operations for this tool include summarization and tagging."
+  "Natural language processing tools such as these can enrich text based on the defined operations. Available operations for this tool include summarization and tagging."
 ]
 ```
 
@@ -262,7 +286,7 @@ Result:
   {
     "NLP Operations and Tools": 0.97,
     "Natural Language Operations": 0.95,
-    "Language Processing Tools": 0.89,
+    "Language Processing Tools": 0.89
   }
 ]
 ```
