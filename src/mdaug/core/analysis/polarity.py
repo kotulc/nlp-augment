@@ -1,58 +1,42 @@
-from app.models.sentiment import get_polarity_model
-from app.models.general import get_document_model
+"""Polarity scoring demo helpers backed by refactored providers."""
 
-from app.core.common.text import NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
+from mdaug.common.sample import NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
+from mdaug.providers.factory import get_provider_bundle
 
 
-# Get module level variables
-polarity_model = get_polarity_model()
-doc_model = get_document_model()
+def _split_sentences(content: str) -> list[str]:
+    """Split text into sentence-like chunks without external dependencies."""
+    chunks = [chunk.strip() for chunk in content.replace("!", ".").replace("?", ".").split(".")]
+    return [chunk for chunk in chunks if chunk]
 
 
 def score_polarity(content: str) -> dict[str, float]:
-    """Compute blob and vader polarity for the supplied string"""
-    # For both sets of scores: -1 most extreme negative, +1 most extreme positive
-    doc = doc_model(content)
-    return dict(polarity=round(float(polarity_model(doc.text)['score']), 4))
+    """Compute deterministic polarity score from analysis provider outputs."""
+    metrics = get_provider_bundle().analysis.analyze(content)
+    return {"polarity": float(metrics["polarity"])}
 
 
 def sentence_polarity(content: str) -> dict[str, list]:
-    """Compute blob and vader polarity for each sentence in the supplied string"""
-    doc = doc_model(content)
-
-    sentence_list, score_list = [], []
-    for sentence in doc.sents:
-        # For both sets of scores: -1 most extreme negative, +1 most extreme positive
-        sentence_text = sentence.text
-        sentence_list.append(sentence_text)
-        score_list.append(round(float(polarity_model(sentence_text)['score']), 4))
-
-    return dict(sentences=sentence_list, scores=score_list)
+    """Compute polarity score for each detected sentence."""
+    sentences = _split_sentences(content)
+    scores = [score_polarity(sentence)["polarity"] for sentence in sentences]
+    return {"sentences": sentences, "scores": scores}
 
 
-# Example usage and testing function
-def demo_polarity():
-    """Test the polarity functions with different parameters"""
-    content_labels = ('negative', 'neutral', 'positive', 'document')
+def demo_polarity() -> None:
+    """Run polarity demo output over standard sample texts."""
+    content_labels = ("negative", "neutral", "positive", "document")
     content_text = (NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT)
 
     print("\n== Document Polarity ===")
     for label, content in zip(content_labels, content_text):
         print(f"\nText: {label}")
-        
-        polarity_score = score_polarity(content)
-        print(f"Content Polarity:", polarity_score)
-        
-    print("\n== Sentence Polarity ===")
-    print(f"\nText: sample_text")
+        print("Content Polarity:", score_polarity(content))
 
-    # Textblob and vader_score polarity scores range from [-1.0, 1.0] with 1 being the most positive
+    print("\n== Sentence Polarity ===")
     polarity_dict = sentence_polarity(SAMPLE_TEXT)
-    
-    # Format document sentence in a more readable way
-    print(f"Sentence Polarity:")
-    for s, score in zip(polarity_dict['sentences'], polarity_dict['scores']):
-        clean_text = "'" + " ".join(s.strip().split())[:60] + "...':"
+    for sentence, score in zip(polarity_dict["sentences"], polarity_dict["scores"]):
+        clean_text = "'" + " ".join(sentence.split())[:60] + "...':"
         print(f"{clean_text:<64}", score)
 
 

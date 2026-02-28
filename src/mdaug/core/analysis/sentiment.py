@@ -1,56 +1,46 @@
-from app.models.sentiment import get_sentiment_model
-from app.models.general import get_document_model
+"""Sentiment scoring demo helpers backed by refactored providers."""
 
-from app.core.common.text import SAMPLE_TEXT, NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT
+from mdaug.common.sample import NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
+from mdaug.providers.factory import get_provider_bundle
 
 
-# Define sentiment class constant
-SENTIMENT_CLASSES = {'neg': 'negative', 'neu': 'neutral', 'pos': 'positive'}
-
-# Get module level variables
-sentiment_model = get_sentiment_model()
-doc_model = get_document_model()
+def _split_sentences(content: str) -> list[str]:
+    """Split text into sentence-like chunks without external dependencies."""
+    chunks = [chunk.strip() for chunk in content.replace("!", ".").replace("?", ".").split(".")]
+    return [chunk for chunk in chunks if chunk]
 
 
 def score_sentiment(content: str) -> dict[str, float]:
-    """Compute bart and vader sentiment scores for the supplied string"""
-    doc = doc_model(content)
-    scores = sentiment_model(doc.text)
-    return {SENTIMENT_CLASSES[k]: round(float(v), 4) for k, v in scores.items()}
+    """Return sentiment-style class scores from analysis provider outputs."""
+    metrics = get_provider_bundle().analysis.analyze(content)
+    return {
+        "negative": float(metrics["negative"]),
+        "neutral": float(metrics["neutral"]),
+        "positive": float(metrics["positive"]),
+    }
 
 
 def sentence_sentiment(content: str) -> dict[str, list]:
-    """Compute bart and vader sentiment scores for each sentence in the supplied string"""
-    doc = doc_model(content)
-
-    sentence_list, score_list = [], []
-    for sentence in doc.sents:
-        # Get bart and vader scores in an equivalent format (including precision)
-        sentence_list.append(sentence.text)
-        scores = sentiment_model(sentence.text)
-        score_list.append({SENTIMENT_CLASSES[k]: round(float(v), 4) for k, v in scores.items()})
-
-    return dict(sentences=sentence_list, scores=score_list)
+    """Return sentiment scores for each sentence-like chunk in text."""
+    sentences = _split_sentences(content)
+    scores = [score_sentiment(sentence) for sentence in sentences]
+    return {"sentences": sentences, "scores": scores}
 
 
-# Example usage and testing function
-def demo_sentiment():
-    """Test the sentiment functions with different parameters"""
-    content_labels = ('negative', 'neutral', 'positive', 'document')
+def demo_sentiment() -> None:
+    """Run sentiment demo output over standard sample texts."""
+    content_labels = ("negative", "neutral", "positive", "document")
     content_text = (NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT)
-    print("\n== Document Sentiment ===")
 
+    print("\n== Document Sentiment ===")
     for label, content in zip(content_labels, content_text):
         print(f"\nText: {label}")
-        sentiment_score = score_sentiment(content)
-        print(f"Content Sentiment:", sentiment_score)
-        
+        print("Content Sentiment:", score_sentiment(content))
+
     print("\n== Sentence Sentiment ===")
-    print(f"\nText: sample_text")
     sentiment_dict = sentence_sentiment(SAMPLE_TEXT)
-    print(f"Sentence Sentiment:")
-    for s, score in zip(sentiment_dict['sentences'], sentiment_dict['scores']):
-        clean_text = "'" + " ".join(s.strip().split())[:60] + "...':"
+    for sentence, score in zip(sentiment_dict["sentences"], sentiment_dict["scores"]):
+        clean_text = "'" + " ".join(sentence.split())[:60] + "...':"
         print(f"{clean_text:<64}", score)
 
 

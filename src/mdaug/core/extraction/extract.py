@@ -1,77 +1,47 @@
-from src.core.common.generate import generate_summary
-from src.core.common.relevance import maximal_marginal_relevance, semantic_similarity
-from src.models.general import get_document_model
-from src.models.keyword import get_keyword_model
-from src.mdaug.core.config import get_settings
+"""Extraction demo helpers backed by refactored providers."""
 
-from src.core.common.text import SAMPLE_TEXT
+from mdaug.common.sample import SAMPLE_TEXT
+from mdaug.providers.factory import get_provider_bundle
 
 
-# Define module level constants
-settings = get_settings()
-TAG_PROMPTS = settings.model.prompts.tag
-
-# Get module level variables
-doc_model = get_document_model()
-keyword_model = get_keyword_model(top_n=10)
-
-
-def extract_entities(content: str, top_n: int=5) -> list:
-    """Extract entities and return the top_n results"""
-    # Extract entity tags from spacy pipeline
-    entities = list({entity.text.strip() for entity in doc_model(content).ents})
-
-    if len(entities):
-        entities, scores = semantic_similarity(content, entities)
-        return entities[:top_n], scores[:top_n]
-    else:
-        return [], []
+def extract_entities(content: str, top_n: int = 5) -> tuple[list[str], list[float]]:
+    """Extract top entity keys and synthetic scores."""
+    entities = get_provider_bundle().extraction.extract(content).get("entities", {})
+    keys = list(entities.keys())[:top_n]
+    scores = [float(entities[key]) for key in keys]
+    return keys, scores
 
 
-def extract_keywords(content: str, top_n: int=10) -> list:
-    """Extract entities and return the top_n most relevant results"""
-    # Extract keywords and compare source relevance with cosine similiarty
-    candidates = keyword_model(content)
-    keywords, scores = semantic_similarity(content, candidates)
-
-    return keywords[:top_n], scores[:top_n]
-
-
-def extract_related(content: str, min_length: int=1, max_length: int=3, top_n: int=10) -> dict:
-    """Use language models to generate lists of related concepts and topics"""
-    # Generate related topics, themes, and concepts
-    tag_strings = []
-    for prompt in TAG_PROMPTS:
-        tag_strings += generate_summary(
-            content=content,
-            prompt=prompt,
-            format="list", 
-            max_new_tokens=top_n * 12, 
-            temperature=0.7
-        )
-
-    # Filter generated tag by length and return the top_n similarity results    
-    candidates = [s for s in tag_strings if len(s.split()) >= min_length and len(s.split()) <= max_length]
-    tags, scores = maximal_marginal_relevance(content, candidates)
-
-    return tags[:top_n], scores[:top_n]
+def extract_keywords(content: str, top_n: int = 10) -> tuple[list[str], list[float]]:
+    """Extract top keyword keys and their scores."""
+    keywords = get_provider_bundle().extraction.extract(content).get("keywords", {})
+    keys = list(keywords.keys())[:top_n]
+    scores = [float(keywords[key]) for key in keys]
+    return keys, scores
 
 
-# Example usage and testing function
-def demo_tagger():
-    """Test the tagging functionality with different parameters."""
+def extract_related(
+    content: str,
+    min_length: int = 1,
+    max_length: int = 3,
+    top_n: int = 10,
+) -> tuple[list[str], list[float]]:
+    """Generate related tags via generative provider and apply length filters."""
+    generated = get_provider_bundle().generative.generate(content, operation="tag")
+    items = [(tag, score) for tag, score in generated.items() if min_length <= len(tag.split()) <= max_length]
+    items = items[:top_n]
+    tags = [tag for tag, _ in items]
+    scores = [float(score) for _, score in items]
+    return tags, scores
+
+
+def demo_tagger() -> None:
+    """Run extraction demo output for entities, keywords, and related tags."""
     print("\n=== Basic Tagging ===")
-    result = extract_entities(SAMPLE_TEXT, top_n=5)
-    print("\nExtracted entities:", result)
-
-    result = extract_keywords(SAMPLE_TEXT, top_n=8)
-    print("\nExtracted keywords:", result)
-
-    result = extract_related(SAMPLE_TEXT, min_length=1, max_length=3, top_n=5)
-    print("\nExtracted related tags (min ngram=1):", result)
-
-    result = extract_related(SAMPLE_TEXT, min_length=2, max_length=5, top_n=5)
-    print("\nExtracted related tags (min ngram=2):", result)
+    print("\nExtracted entities:", extract_entities(SAMPLE_TEXT, top_n=5))
+    print("\nExtracted keywords:", extract_keywords(SAMPLE_TEXT, top_n=8))
+    print("\nExtracted related tags (min ngram=1):", extract_related(SAMPLE_TEXT, min_length=1, max_length=3, top_n=5))
+    print("\nExtracted related tags (min ngram=2):", extract_related(SAMPLE_TEXT, min_length=2, max_length=5, top_n=5))
 
 
 if __name__ == "__main__":

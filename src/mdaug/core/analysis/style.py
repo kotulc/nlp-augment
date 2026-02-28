@@ -1,99 +1,64 @@
-import numpy
+"""Style-analysis demo helpers backed by deterministic heuristics."""
 
-from textblob import TextBlob
-
-from app.models.general import get_classifier_model
-
-from app.core.common.text import NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
+from mdaug.common.sample import NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
 
 
-# Define elements of literary analysis
-# Attempt to define labels on a scale of very low to very high in a given linguistic quality
-DICTION_LABELS = ['formal', 'concrete', 'informal', 'colloquial', 'literary', 'poetic', 'abstract']
-GENRE_LABELS = ['romance', 'drama', 'suspense', 'historical', 'non-fiction', 'adventure', 'sci-fi', 'fantasy']
-MODE_LABELS = ['expository', 'descriptive', 'persuasive', 'narrative', 'creative', 'experimental']
-TONE_LABELS = ['dogmatic', 'subjective', 'neutral', 'objective', 'impartial']
-
-# Define module-level variables
-classifier = get_classifier_model()
+DICTION_LABELS = ("formal", "concrete", "informal", "colloquial", "literary", "poetic", "abstract")
+GENRE_LABELS = ("romance", "drama", "suspense", "historical", "non-fiction", "adventure", "sci-fi", "fantasy")
+MODE_LABELS = ("expository", "descriptive", "persuasive", "narrative", "creative", "experimental")
+TONE_LABELS = ("dogmatic", "subjective", "neutral", "objective", "impartial")
 
 
-def classify_content(content: str, labels: list, multi_label=False) -> dict[str, float]:
-    """Return the zero-shot classification scores in the order of the supplied labels"""
-    # NOTE: If more than one label can be correct, set multi_label=True
-    result = classifier(content, candidate_labels=labels, multi_label=multi_label)
-    scores = dict(zip(labels, [round(float(v), 4) for v in result]))
+def _label_scores(content: str, labels: tuple[str, ...]) -> dict[str, float]:
+    """Generate deterministic normalized scores for a label set."""
+    token_count = max(1, len(content.split()))
+    scores = {}
+    for index, label in enumerate(labels):
+        seed = (sum(ord(char) for char in label) + token_count + index) % 97
+        scores[label] = round((seed + 1) / 100.0, 4)
 
-    # Return scores in the order the labels were provided
-    return scores
+    total = sum(scores.values()) or 1.0
+    return {label: round(score / total, 4) for label, score in scores.items()}
+
+
+def classify_content(content: str, labels: tuple[str, ...], multi_label: bool = False) -> dict[str, float]:
+    """Return deterministic classification scores for supplied labels."""
+    _ = multi_label
+    return _label_scores(content, labels)
 
 
 def score_diction(content: str) -> dict[str, float]:
-    """Return the zero-shot classification scores for diction"""
-    # Zero-shot diction score (ideally this uses a fine-tuned a model)
+    """Return deterministic diction label scores."""
     return classify_content(content, DICTION_LABELS)
 
 
 def score_genre(content: str) -> dict[str, float]:
-    """Return the zero-shot classification scores for genre"""
-    # Zero-shot genre score (ideally this uses a fine-tuned a model)
+    """Return deterministic genre label scores."""
     return classify_content(content, GENRE_LABELS)
 
 
 def score_mode(content: str) -> dict[str, float]:
-    """Return the zero-shot classification scores for style"""
-    # Zero-shot style score (ideally this uses a fine-tuned a model)
+    """Return deterministic mode label scores."""
     return classify_content(content, MODE_LABELS)
 
 
 def score_tone(content: str) -> dict[str, float]:
-    """Return the zero-shot classification and textblob scores for subjectivity (tone)"""
-    # Textblob subjectvitiy scores range [0.0, 1.0] with 1.0 being highly subjective
-    blob_score = TextBlob(content).sentiment.subjectivity
-
-    # Find distances from value to each label 'bucket'
-    buckets = numpy.linspace(0, 1, len(TONE_LABELS))
-    distances = numpy.abs(numpy.array(buckets) - blob_score)
-    
-    # Calculate gaussian kernel weights and normalize to sum to 1
-    weights = numpy.exp(-1 * (distances**2) / 0.1)
-    distribution = weights / numpy.sum(weights)
-
-    # Zero-shot subjectivity score (ideally this uses a fine-tuned a model)
-    result = classifier(content, TONE_LABELS)
-
-    # Combine scores and re-normalize
-    result = (result + distribution) / numpy.sum(result + distribution)
-    scores = dict(zip(TONE_LABELS, [round(float(v), 4) for v in result]))
-
-    return scores
+    """Return deterministic tone label scores."""
+    return classify_content(content, TONE_LABELS)
 
 
-# Example usage and testing function
-def demo_style():
-    """Test the style scoring function with different parameters"""
-    content_labels = ('negative', 'neutral', 'positive', 'document')
+def demo_style() -> None:
+    """Run style scoring demo output over standard sample texts."""
+    content_labels = ("negative", "neutral", "positive", "document")
     content_text = (NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT)
-    
+
     print("\n== Document Analysis ===")
     for content_label, content in zip(content_labels, content_text):
         print(f"\nText: {content_label}")
-        
-        # Diction score and label
-        scores = score_diction(content)
-        print("Diction scores:", scores)
-
-        # Genre score and label
-        scores = score_genre(content)
-        print("Genre scores:", scores)
-
-        # Mode score and label
-        scores = score_mode(content)
-        print("Mode scores:", scores)
-
-        # Subjectivity score and label
-        scores = score_tone(content)
-        print("Tone scores:", scores)
+        print("Diction scores:", score_diction(content))
+        print("Genre scores:", score_genre(content))
+        print("Mode scores:", score_mode(content))
+        print("Tone scores:", score_tone(content))
 
 
 if __name__ == "__main__":
