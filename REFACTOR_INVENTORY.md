@@ -25,6 +25,8 @@
   - Archive and replace with contract-driven tests aligned to `SPEC.md`.
 - Provider README content tied to old structure assumptions
   - Replace with new provider interface documentation after Phase 4.
+- Legacy modules under `src/mdaug/providers/default/*`
+  - Removed in Phase 7 after introducing registry/factory-backed provider selection.
 
 ## Notes
 - `SPEC.md` and root `README.md` are now considered source-of-truth for behavior.
