@@ -74,6 +74,55 @@ def test_load_provider_settings_env_overrides(tmp_path: Path):
     assert settings.relevance == "mock"
 
 
+def test_load_provider_settings_cli_overrides_env_and_config(tmp_path: Path):
+    """CLI overrides take precedence over environment and config values."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        "\n".join(
+            [
+                "providers:",
+                "  analysis: config_analysis",
+                "  extraction: config_extraction",
+                "  generative: config_generative",
+                "  relevance: config_relevance",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    env = {
+        "MDAUG_PROVIDER_ANALYSIS": "env_analysis",
+        "MDAUG_PROVIDER_EXTRACTION": "env_extraction",
+    }
+    overrides = {
+        "analysis": "mock",
+        "extraction": "mock",
+        "generative": "mock",
+        "relevance": "mock",
+    }
+
+    settings = load_provider_settings(
+        config_path=config_path,
+        environ=env,
+        overrides=overrides,
+    )
+
+    assert settings == ProviderSettings(
+        analysis="mock",
+        extraction="mock",
+        generative="mock",
+        relevance="mock",
+    )
+
+
+def test_load_provider_settings_falls_back_to_defaults_when_missing_config(tmp_path: Path):
+    """Missing config and empty env/CLI values fall back to default provider names."""
+    config_path = tmp_path / "missing.yaml"
+    settings = load_provider_settings(config_path=config_path, environ={}, overrides={})
+
+    assert settings == ProviderSettings()
+
+
 def test_create_provider_bundle_with_default_registry():
     """Provider bundle creation returns deterministic mock provider selection."""
     settings = ProviderSettings()

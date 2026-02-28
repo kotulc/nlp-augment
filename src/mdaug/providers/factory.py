@@ -61,8 +61,22 @@ def create_provider_bundle(
     )
 
 
+def build_provider_bundle(
+    config_path: str | None = None,
+    overrides: dict[str, str] | None = None,
+    environ: dict[str, str] | None = None,
+    registry: ProviderRegistry | None = None,
+) -> ProviderBundle:
+    """Build a provider bundle using config/env/CLI precedence."""
+    settings = load_provider_settings(
+        config_path=config_path,
+        environ=environ,
+        overrides=overrides,
+    )
+    return create_provider_bundle(settings=settings, registry=registry)
+
+
 @lru_cache(maxsize=1)
 def get_provider_bundle() -> ProviderBundle:
     """Load provider settings from config and build a cached provider bundle."""
-    settings = load_provider_settings()
-    return create_provider_bundle(settings=settings)
+    return build_provider_bundle()

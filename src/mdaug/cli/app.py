@@ -8,6 +8,7 @@ from pathlib import Path
 from mdaug.cli.commands import COMMANDS
 from mdaug.schemas.errors import RequestValidationError, to_error_payload
 from mdaug.schemas.io import normalize_request
+from mdaug.providers.factory import build_provider_bundle
 from mdaug.service.runtime import run_command
 
 
@@ -20,6 +21,11 @@ def build_parser() -> argparse.ArgumentParser:
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("--file", dest="file_path")
         command_parser.add_argument("--out", dest="out_path")
+        command_parser.add_argument("--config", dest="config_path")
+        command_parser.add_argument("--provider-analysis", dest="provider_analysis")
+        command_parser.add_argument("--provider-extraction", dest="provider_extraction")
+        command_parser.add_argument("--provider-generative", dest="provider_generative")
+        command_parser.add_argument("--provider-relevance", dest="provider_relevance")
 
     return parser
 
@@ -102,7 +108,23 @@ def main(argv: list[str] | None = None) -> int:
         _emit_error(exc.code, exc.message, args.out_path)
         return 1
 
-    result = run_command(args.command, request)
+    overrides = {
+        "analysis": args.provider_analysis,
+        "extraction": args.provider_extraction,
+        "generative": args.provider_generative,
+        "relevance": args.provider_relevance,
+    }
+
+    try:
+        providers = build_provider_bundle(
+            config_path=args.config_path,
+            overrides=overrides,
+        )
+    except (ValueError, KeyError) as exc:
+        _emit_error("invalid_config", str(exc), args.out_path)
+        return 1
+
+    result = run_command(args.command, request, providers=providers)
     try:
         _write_result(result, args.out_path)
     except OSError as exc:

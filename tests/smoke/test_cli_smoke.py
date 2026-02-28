@@ -128,3 +128,27 @@ def test_cli_missing_required_content_returns_error(monkeypatch, capsys):
 
     assert exit_code == 1
     assert result["error"] == "invalid_input"
+
+
+def test_cli_provider_override_beats_env(monkeypatch, capsys):
+    """CLI provider overrides take precedence over environment provider settings."""
+    monkeypatch.setenv("MDAUG_PROVIDER_ANALYSIS", "missing")
+    monkeypatch.setattr("sys.stdin", io.StringIO('["Sample input"]'))
+
+    exit_code = main(["analyze", "--provider-analysis", "mock"])
+    result = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert isinstance(result, list)
+    assert "positive" in result[0]
+
+
+def test_cli_unknown_provider_returns_invalid_config(monkeypatch, capsys):
+    """Unknown provider values return invalid_config with non-zero exit code."""
+    monkeypatch.setattr("sys.stdin", io.StringIO('["Sample input"]'))
+
+    exit_code = main(["analyze", "--provider-analysis", "unknown"])
+    result = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert result["error"] == "invalid_config"

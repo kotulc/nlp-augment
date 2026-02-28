@@ -10,11 +10,25 @@ from mdaug.cli.commands import COMMANDS
 def test_build_parser_supports_all_commands(command):
     """Parser accepts every documented command and optional I/O flags."""
     parser = build_parser()
-    args = parser.parse_args([command, "--file", "in.json", "--out", "out.json"])
+    args = parser.parse_args(
+        [
+            command,
+            "--file",
+            "in.json",
+            "--out",
+            "out.json",
+            "--config",
+            "config.yaml",
+            "--provider-analysis",
+            "mock",
+        ]
+    )
 
     assert args.command == command
     assert args.file_path == "in.json"
     assert args.out_path == "out.json"
+    assert args.config_path == "config.yaml"
+    assert args.provider_analysis == "mock"
 
 
 def test_build_parser_requires_known_command():
