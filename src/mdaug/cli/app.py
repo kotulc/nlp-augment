@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 
 from mdaug.cli.commands import COMMANDS
+from mdaug.schemas.errors import RequestValidationError, to_error_payload
+from mdaug.schemas.io import normalize_request
 from mdaug.service.runtime import run_command
 
 
@@ -20,11 +22,6 @@ def build_parser() -> argparse.ArgumentParser:
         command_parser.add_argument("--out", dest="out_path")
 
     return parser
-
-
-def _json_error(error: str, message: str) -> dict:
-    """Build a compact JSON error payload."""
-    return {"error": error, "message": message}
 
 
 def _read_payload(file_path: str | None) -> object:
@@ -65,13 +62,22 @@ def main(argv: list[str] | None = None) -> int:
     try:
         payload = _read_payload(args.file_path)
     except FileNotFoundError:
-        _write_result(_json_error("invalid_input", f"File not found: {args.file_path}"), args.out_path)
+        _write_result(
+            to_error_payload("invalid_input", f"File not found: {args.file_path}"),
+            args.out_path,
+        )
         return 1
     except json.JSONDecodeError as exc:
-        _write_result(_json_error("invalid_json", str(exc)), args.out_path)
+        _write_result(to_error_payload("invalid_json", str(exc)), args.out_path)
         return 1
 
-    result = run_command(args.command, payload)
+    try:
+        request = normalize_request(payload)
+    except RequestValidationError as exc:
+        _write_result(to_error_payload(exc.code, exc.message), args.out_path)
+        return 1
+
+    result = run_command(args.command, request)
     _write_result(result, args.out_path)
     return 0
 
