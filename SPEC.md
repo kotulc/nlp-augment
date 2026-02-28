@@ -321,8 +321,8 @@ Error behavior:
 Example:
 ```json
 {
-  "error": "missing_field",
-  "message": "Required field 'content' is missing."
+  "error": "missing_input",
+  "message": "No JSON input found. Provide input via stdin or --file."
 }
 ```
 

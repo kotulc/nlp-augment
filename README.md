@@ -315,6 +315,32 @@ Result:
 ```
 
 
+## CLI Examples
+Read from file:
+```bash
+mdaug analyze --file examples/analyze.json
+```
+
+Pipe JSON via stdin:
+```bash
+cat examples/summarize.json | mdaug summarize
+```
+
+Write response to a file:
+```bash
+mdaug tag --file examples/text.json --out tagged.json
+```
+
+
+## Troubleshooting
+- `missing_input`: No JSON input was provided via `stdin` or `--file`.
+- `invalid_input_source`: Both `stdin` and `--file` were provided in the same call.
+- `invalid_json`: Input JSON is malformed and cannot be parsed.
+- `invalid_input`: Input shape or item types do not match the command contract.
+- `invalid_output`: The `--out` destination is not writable.
+- `invalid_config`: Provider selection options are not registered.
+
+
 ## Architecture
 The general flow of dependency is `cli -> service -> core -> providers`:
 
@@ -339,8 +365,9 @@ The command line interface package contains all modules that define the CLI app,
 
 ```
 cli/                
-  cli.py              # CLI interface entrypoint (Typer command based)
-  commands.py         # Defines available commands (e.g. init, extract, commit, export)
+  app.py              # CLI interface entrypoint and JSON I/O contract handling
+  commands.py         # Declares supported commands
+  __main__.py         # Supports `python -m mdaug.cli`
 ```
 
 
@@ -349,8 +376,8 @@ The common package simply contains shared modules and utilities leveraged throug
 
 ```
 common/
-  sample.py           # Sample text for operation demonstrations
-  config.py           # User configuration loading and validation
+  provider_config.py  # Provider selection loading (CLI/env/config/default)
+  config.py           # Shared configuration entrypoints
 ```
 
 
