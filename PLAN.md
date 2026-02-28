@@ -11,6 +11,7 @@ assuming most existing implementation is replaced while keeping only reusable id
 - Command behavior is deterministic, validated, and covered by tests.
 - Provider integrations are behind stable interfaces (no SDK coupling in core logic).
 - README/SPEC examples are executable and validated in tests.
+- All legacy `demo_*` integration tests transition from skip to pass by the end of the plan.
 
 ## Guiding Rules
 - `SPEC.md` and `README.md` are source of truth.
@@ -31,11 +32,16 @@ assuming most existing implementation is replaced while keeping only reusable id
    - adapt (logic with useful core ideas),
    - archive/remove (conflicting architecture).
 4. Add a minimal smoke test suite for current CLI entrypoints (if not present).
+5. Preserve legacy core demo integration coverage:
+   - keep a `demo_*` smoke suite for analysis/extraction/generation modules,
+   - execute demos when dependencies are available,
+   - skip with explicit reason when legacy dependencies are not yet migrated.
 
 ### Exit Criteria
 - Refactor branch is isolated.
 - Baseline test command is documented and runnable.
 - Keep/adapt/remove inventory is committed.
+- Legacy demo smoke tests exist and are wired into test discovery.
 
 ## Phase 1: Target Architecture Skeleton
 ### Goals
@@ -130,6 +136,7 @@ assuming most existing implementation is replaced while keeping only reusable id
    - implement core logic,
    - validate output ordering and key mapping,
    - add integration CLI test.
+3. Replace legacy demo smoke skips with active demo execution for refactored modules.
 
 ### Exit Criteria
 - All commands pass unit + integration tests.
@@ -189,12 +196,40 @@ assuming most existing implementation is replaced while keeping only reusable id
 - CI green on lint, type check, unit, integration, docs examples.
 - Release candidate approved.
 
+## Phase 10: Legacy Demo End-to-End Migration
+### Goals
+- Migrate all legacy `demo_*` modules to the refactored architecture.
+- Ensure demo integration tests run successfully (no skip due to legacy imports).
+
+### Tasks
+1. Migrate demo modules to new import boundaries:
+   - `analysis/polarity.py`
+   - `analysis/sentiment.py`
+   - `analysis/spam.py`
+   - `analysis/style.py`
+   - `extraction/extract.py`
+   - `generation/generate.py`
+   - `generation/headings.py`
+2. Remove references to legacy paths (`app.*`, `src.core.*`, `src.models.*`).
+3. Route demo runtime dependencies through `mdaug.providers` interfaces and factories.
+4. Add deterministic provider/test fixtures so demos can run in CI without heavy external setup.
+5. Convert `tests/integration/core/test_demo_smoke.py` skips into strict pass expectations.
+6. Add progress tracking in CI:
+   - `demo_smoke_passed / demo_smoke_total`
+   - enforce a non-decreasing pass count until full migration.
+
+### Exit Criteria
+- Demo smoke suite has zero skips for legacy dependency reasons.
+- All demo smoke tests pass in local and CI runs.
+- Demo modules are documented as refactor-complete.
+
 ## Suggested Work Breakdown (Execution Order)
 1. Phase 0-1: architecture and guardrails.
 2. Phase 2-3: contract and CLI behavior.
 3. Phase 4-5: provider abstraction and command implementations.
 4. Phase 6-7: config alignment and legacy removal.
 5. Phase 8-9: docs verification and release hardening.
+6. Phase 10: end-to-end migration of legacy demo modules.
 
 ## Risks and Mitigations
 - Risk: hidden coupling in legacy code.
@@ -205,6 +240,8 @@ assuming most existing implementation is replaced while keeping only reusable id
   - Mitigation: single normalization/formatting layer (Phase 2).
 - Risk: slow progress from over-preserving old code.
   - Mitigation: keep/adapt/remove inventory and delete aggressively.
+- Risk: demos stay skipped indefinitely and become stale.
+  - Mitigation: dedicated Phase 10 with explicit pass/skip targets.
 
 ## Definition of Done
 - Project behavior matches `SPEC.md` and `README.md`.
