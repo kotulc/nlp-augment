@@ -1,36 +1,25 @@
+"""Unit tests for CLI parser contract."""
+
 import pytest
 
-from app.core.operations import get_summary, SUMMARY_TYPES
+from mdaug.cli.app import build_parser
+from mdaug.cli.commands import COMMANDS
 
 
-def test_summary():
-    """Verify only 'content' argument is required"""
-    results = get_summary(content="Test content for summary.", summary="description")
-    assert "summaries" in results
-    assert "scores" in results
-    assert len(results["summaries"])
-    assert len(results["summaries"]) == len(results["scores"])
+@pytest.mark.parametrize("command", COMMANDS)
+def test_build_parser_supports_all_commands(command):
+    """Parser accepts every documented command and optional I/O flags."""
+    parser = build_parser()
+    args = parser.parse_args([command, "--file", "in.json", "--out", "out.json"])
+
+    assert args.command == command
+    assert args.file_path == "in.json"
+    assert args.out_path == "out.json"
 
 
-@pytest.mark.parametrize("summary_type", list(SUMMARY_TYPES.keys()))
-def test_summary_type(summary_type):
-    """Test each summary type individually"""
-    results = get_summary(content="Test content for summary.", summary=summary_type)
-    assert "summaries" in results
-    assert "scores" in results
-    assert len(results["summaries"])
-    assert len(results["summaries"]) == len(results["scores"])
+def test_build_parser_requires_known_command():
+    """Parser raises SystemExit for unknown command names."""
+    parser = build_parser()
 
-
-@pytest.mark.parametrize("top_n", [1, 3, 5])
-def test_summary_top_n(top_n):
-    """All returned results have length <= top_n"""
-    results = get_summary(
-        content="Test content for summary.", 
-        summary="description",
-        top_n=top_n
-    )
-    assert "summaries" in results
-    assert "scores" in results
-    assert len(results["summaries"])
-    assert len(results["summaries"]) <= top_n
+    with pytest.raises(SystemExit):
+        parser.parse_args(["unknown"])

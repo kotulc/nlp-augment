@@ -7,6 +7,10 @@ A CLI-first NLP augmentation toolkit for structured text content.
 ## Purpose
 This application is intended to augment collections of text content with AI and NLP-derived relational and semantic information with a simple and direct JSON input and output format.
 
+## Refactor Status
+The project is in active refactor to align implementation with `SPEC.md` and this README.
+During early phases, CLI command stubs and smoke tests are the primary stability targets.
+
 General Workflow:
 ```text
 JSON content -> compute metrics, summarize, extract tags -> JSON results

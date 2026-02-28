@@ -9,4 +9,8 @@ dependencies = []
 requires-python = ">= 3.10"
 
 [tool.setuptools]
-packages = ["app"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mdaug*"]

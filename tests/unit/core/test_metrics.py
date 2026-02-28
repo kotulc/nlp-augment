@@ -1,36 +1,28 @@
+"""Unit tests for payload shape classification."""
+
 import pytest
 
-from app.core.operations import get_metrics, METRIC_TYPES
+from mdaug.schemas.io import get_payload_type
 
 
-def test_metrics():
-    """Confirm only 'content' argument is required"""
-    results = compute_metrics(content="Test content for metrics.")
-    for metric in METRIC_TYPES.keys():
-        assert metric in results
+@pytest.mark.parametrize(
+    "payload, expected",
+    [
+        (None, "empty"),
+        ([], "list"),
+        (["content"], "list"),
+        ({}, "dict"),
+        ({"id1": "content"}, "dict"),
+        ([["a"], ["b"]], "grouped_list"),
+        ([{"id1": "a"}, {"id2": "b"}], "grouped_dict_list"),
+        ({"group1": {"id1": "a"}}, "grouped_dict"),
+    ],
+)
+def test_get_payload_type(payload, expected):
+    """Each supported request shape maps to the expected payload type label."""
+    assert get_payload_type(payload) == expected
 
 
-@pytest.mark.parametrize("metric_type", [m for m in METRIC_TYPES])
-def test_metrics_single_type(metric_type: str):
-    """Test each metric type individually"""
-    results = compute_metrics(content="Test content for metrics.", metrics=[metric_type])
-    for metric in METRIC_TYPES.keys():
-        if metric != metric_type:
-            assert not metric in results
-        else:
-            assert metric in results
-            assert isinstance(results[metric], dict)
-            assert len(results[metric]) > 0
-
-
-@pytest.mark.parametrize("metric_types", [
-    [m for m in METRIC_TYPES],
-    [m for m in METRIC_TYPES][:2],
-])
-def test_metrics_multiple_types(metric_types: list):
-    """Test multiple metric types at once"""
-    results = compute_metrics(content="Test content for metrics.", metrics=metric_types)
-    for metric in metric_types:
-        assert metric in results
-        assert isinstance(results[metric], dict)
-        assert len(results[metric]) > 0
+def test_get_payload_type_unknown():
+    """Unknown payload objects map to their type name."""
+    assert get_payload_type(42) == "int"

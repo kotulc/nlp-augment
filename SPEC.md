@@ -1,4 +1,4 @@
-# nlp-mdaug Specifications
+﻿# nlp-mdaug Specifications
 This document is intended to serve as a whiteboard for the early specifications for this application.
 
 
@@ -428,6 +428,7 @@ core/providers/
   registry.py              # names -> provider classes
   factory.py               # build providers from config
   errors.py                # provider-specific exceptions
+  default/                 # default provider logic (generate, sentiment, etc.)
   interfaces/
     generative.py          # generate(prompt, ...) -> list[str]
     embeddings.py          # embed(texts) -> vectors
