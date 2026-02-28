@@ -1,7 +1,9 @@
-"""Smoke tests for phase-1 CLI command stubs."""
+"""Smoke tests for CLI I/O contracts and command output shapes."""
 
 import io
 import json
+
+import pytest
 
 from mdaug.cli.app import main
 
@@ -15,21 +17,43 @@ def test_cli_without_command_prints_help(capsys):
     assert "usage: mdaug" in output
 
 
-def test_cli_command_reads_stdin_json(monkeypatch, capsys):
-    """Command reads JSON from stdin and emits stub result JSON."""
-    monkeypatch.setattr("sys.stdin", io.StringIO('["sample content"]'))
+@pytest.mark.parametrize(
+    "command,stdin_payload,assertion_key",
+    [
+        ("analyze", '["Sample input"]', "positive"),
+        ("extract", '["Sample input"]', "keywords"),
+        ("outline", '["Sample input for outline"]', None),
+        ("summarize", '["Sample input for summarize"]', None),
+        ("tag", '["Sample input for tag"]', None),
+        ("title", '["Sample input for title"]', None),
+    ],
+)
+def test_cli_item_commands_read_stdin_json(monkeypatch, capsys, command, stdin_payload, assertion_key):
+    """Item commands read stdin JSON and return list-shaped results."""
+    monkeypatch.setattr("sys.stdin", io.StringIO(stdin_payload))
 
-    exit_code = main(["analyze"])
-    output = capsys.readouterr().out
-    result = json.loads(output)
+    exit_code = main([command])
+    result = json.loads(capsys.readouterr().out)
 
     assert exit_code == 0
     assert isinstance(result, list)
-    assert result[0]["command"] == "analyze"
-    assert result[0]["status"] == "not_implemented"
-    assert result[0]["id"] is None
-    assert result[0]["provider"] == "mock"
-    assert "length" in result[0]["preview"]
+    assert isinstance(result[0], dict)
+    if assertion_key is not None:
+        assert assertion_key in result[0]
+
+
+@pytest.mark.parametrize("command", ["compare", "rank"])
+def test_cli_group_commands_return_set_level_dict(monkeypatch, capsys, command):
+    """Compare and rank return set-level dictionary output for list input."""
+    payload = '["query content", "candidate one", "candidate two"]'
+    monkeypatch.setattr("sys.stdin", io.StringIO(payload))
+
+    exit_code = main([command])
+    result = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert isinstance(result, dict)
+    assert len(result) == 2
 
 
 def test_cli_command_reads_file_and_writes_out_file(tmp_path):
@@ -38,15 +62,13 @@ def test_cli_command_reads_file_and_writes_out_file(tmp_path):
     output_path = tmp_path / "output.json"
     input_path.write_text('{"item1": "text"}', encoding="utf-8")
 
-    exit_code = main(["tag", "--file", str(input_path), "--out", str(output_path)])
+    exit_code = main(["analyze", "--file", str(input_path), "--out", str(output_path)])
     result = json.loads(output_path.read_text(encoding="utf-8"))
 
     assert exit_code == 0
     assert isinstance(result, dict)
-    assert result["item1"]["command"] == "tag"
-    assert result["item1"]["status"] == "not_implemented"
-    assert result["item1"]["id"] == "item1"
-    assert result["item1"]["provider"] == "mock"
+    assert "item1" in result
+    assert "positive" in result["item1"]
 
 
 def test_cli_invalid_json_returns_error(tmp_path):

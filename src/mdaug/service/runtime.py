@@ -1,7 +1,7 @@
 """Runtime orchestration for command routing."""
 
 from mdaug.cli.commands import COMMANDS
-from mdaug.core.operations import run_item
+from mdaug.core.operations import GROUP_COMMANDS, ITEM_COMMANDS, run_group_operation, run_item_operation
 from mdaug.providers.factory import get_provider_bundle
 from mdaug.schemas.io import NormalizedRequest, map_results
 
@@ -12,12 +12,28 @@ def run_command(command: str, request: NormalizedRequest) -> dict | list:
         return {"error": "invalid_command", "message": f"Unsupported command: {command}"}
 
     providers = get_provider_bundle()
-    return map_results(
-        request=request,
-        item_mapper=lambda item_id, content: run_item(
-            command=command,
-            item_id=item_id,
-            content=content,
-            providers=providers,
-        ),
-    )
+    if command in ITEM_COMMANDS:
+        return map_results(
+            request=request,
+            item_mapper=lambda _item_id, content: run_item_operation(
+                command=command,
+                content=content,
+                providers=providers,
+            ),
+        )
+
+    if command in GROUP_COMMANDS:
+        group_outputs: list[dict] = []
+        for group in request.groups:
+            group_outputs.append(run_group_operation(command=command, group=group, providers=providers))
+
+        if request.shape in {"list", "dict"}:
+            return group_outputs[0]
+        if request.shape == "grouped_list":
+            return group_outputs
+        return {
+            group_id: group_output
+            for group_id, group_output in zip(request.group_ids or [], group_outputs)
+        }
+
+    return {"error": "invalid_command", "message": f"Unsupported command: {command}"}
