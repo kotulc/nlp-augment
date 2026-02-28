@@ -28,7 +28,7 @@ Each command takes input in the same shape (defined below) and returns results b
 | Command | Purpose | Output Shape (Default) |
 |---------|---------|------------------------|
 | `mdaug analyze` | Compute metrics (sentiment, toxicity, etc.) |  `{metric: value, ...}` |
-| `mdaug compare` | Compare one or more text inputs | `{input: score, ...}` |
+| `mdaug compare` | Compare the similarity of text content | `{input: score, ...}` |
 | `mdaug extract` | Extract entities/keywords from the supplied content | `{entities: [...], ...}` |
 | `mdaug outline` | Generate an outline of the supplied conent | `{outline: "...", ...}` |
 | `mdaug rank` | Rank items against query text | `[most_relevant, ..., least_relevant]` |
@@ -85,7 +85,7 @@ The examples below illustrate a single result for a given content item.
 
 
 #### `mdaug analyze`
-The `analyze` command computes the scores of a set of pre-defined (customizable via `config.yaml`) metrics.
+The `analyze` command computes the scores of a set of pre-defined metrics customizable via `config.yaml`.
 
 Request:
 ```json
@@ -121,11 +121,11 @@ Request:
 
 Result:
 ```json
-[
-  0.93, 
-  0.71, 
-  0.78
-]
+{
+  "NLP can enrich text with generated summaries and tags.": 0.93, 
+  "Content can be transformed into structured NLP outputs.": 0.78, 
+  "Text augmentation adds summary and tagging metadata.": 0.71
+}
 ```
 
 
@@ -165,15 +165,18 @@ Request:
 
 Result:
 ```json
-{
-  "Natural language operations": 0.85,
-  "Summarization and tagging": 0.83
-}
+[
+  {
+    "Natural language operations": 0.85,
+    "Summarization and tagging": 0.83
+  }
+]
+
 ```
 
 
 #### `mdaug rank`
-The `rank` command returns results in order of a composite similarity metric along with the computed scores.
+The `rank` command returns ordered results and scores from a composite similarity metric that includes linguistic acceptability, ranking candidates in terms of completeness and not just similarity.
 
 Request:
 ```json
@@ -189,8 +192,8 @@ Result:
 ```json
 {
   "NLP can enrich text with generated summaries and tags.": 0.93,
-  "Content can be transformed into structured NLP outputs.": 0.78,
-  "Text augmentation adds summary and tagging metadata.": 0.71
+  "Text augmentation adds summary and tagging metadata.": 0.79,
+  "Content can be transformed into structured NLP outputs.": 0.65,
 }
 ```
 
@@ -208,11 +211,13 @@ Request:
 
 Result:
 ```json
-{
-  "Natural language processing": 0.89,
-  "Available operations for this tool": 0.82,
-  "Operations to enrich text": 0.77,
-}
+[
+  {
+    "Natural language processing": 0.89,
+    "Available operations for this tool": 0.82,
+    "Operations to enrich text": 0.77,
+  }
+]
 ```
 
 
@@ -229,12 +234,14 @@ Request:
 
 Result:
 ```json
-{
-  "natural language": 0.92,
-  "text": 0.90,
-  "operations": 87,
-  "tool": 0.85
-}
+[
+  {
+    "natural language": 0.92,
+    "text": 0.90,
+    "operations": 87,
+    "tool": 0.85
+  }
+]
 ```
 
 
@@ -251,42 +258,43 @@ Request:
 
 Result:
 ```json
-{
-  "NLP Operations and Tools": 0.97,
-  "Natural Language Operations": 0.95,
-  "Language Processing Tools": 0.89,
-}
+[
+  {
+    "NLP Operations and Tools": 0.97,
+    "Natural Language Operations": 0.95,
+    "Language Processing Tools": 0.89,
+  }
+]
 ```
 
 
-# TODO: Finish revising CLI examples using the above input/output format
 ## CLI Examples
+Each command defaults to stdin input streams but can optionally read from a file using the `--file` option. Similarly, output defaults to stdout but the `--out` option supports writing to a file instead.
 
 Read from file:
-
 ```bash
-mdaug analyze --file examples/analyze.json
+mdaug analyze --file examples/text.json
 ```
 
 Pipe JSON via stdin:
-
 ```bash
-cat examples/summarize.json | mdaug summarize
+cat examples/text.json | mdaug summarize
 ```
 
 Write response to a file:
-
 ```bash
-mdaug compute --file examples/compute.json --out output.json
+mdaug tag --file examples/text.json --out tagged.json
 ```
 
 
-## Errors (Simple Default)
-
-Default CLI errors should be understandable and small.
+## Errors
+Error behavior:
+- Validation errors return non-zero exit code
+- Runtime/model errors return non-zero exit code
+- Error JSON goes to `stdout` (if command is in JSON mode)
+- Logs/details go to `stderr`
 
 Example:
-
 ```json
 {
   "error": "missing_field",
@@ -294,23 +302,13 @@ Example:
 }
 ```
 
-Suggested error behavior:
-
-- Validation errors return non-zero exit code
-- Runtime/model errors return non-zero exit code
-- Error JSON goes to `stdout` (if command is in JSON mode)
-- Logs/details go to `stderr`
-
 
 ## Optional Advanced Format (Later)
-
 If needed, add an optional richer output mode for debugging and pipelines:
-
 - `--format full`
-- `--debug-meta`
+- `--debug`
 
 This mode can include:
-
 - request IDs
 - provider/model metadata
 - timing info
@@ -318,64 +316,53 @@ This mode can include:
 - scored candidates for summaries/tags
 
 Important:
-
 - Keep simple mode as the default
 - Do not require envelope-based JSON for normal usage
 
 
 ## Configuration
-
-Priority order:
-
+All command options may also be set as environment variables or configured through the local `config.yaml` file. The order of priority for these configurations always follows the pattern below:
 ```text
 CLI option -> environment variable -> config.yaml -> built-in default
 ```
 
-Suggested config groups:
-
+Configuration groups:
 - `providers` (backend selection)
-- `models` (model names per operation)
 - `generation` (prompt templates, token limits, temperature)
-- `analysis` (enabled metrics / thresholds)
-- `relevance` (ranking defaults)
-- `runtime` (logging, cache, device)
+- `service` (runtime logging, cache, device)
+- `operations` (settings for each command, e.g. analyze, compare, extract, etc.)
 
 Example (conceptual):
-
 ```yaml
 providers:
   generative: huggingface
   embeddings: sentence_transformers
   nlp: spacy
 
-models:
-  generative:
-    model: google/gemma-3-1b-it
-
 generation:
+  model: google/gemma-3-1b-it
   max_new_tokens: 128
   temperature: 0.7
 ```
 
 
 ## Architecture (Simple, Extensible)
-
 ```text
 src/mdaug/
-  cli/                  # CLI commands and input/output handling
-  common/               # config, schemas, errors, shared utilities
-  core/
-    analysis/           # analyze operation
-    extraction/         # tag operation
-    generation/         # summarize operation
-    relevance/          # compare and rank operations
-    providers/          # model/provider interfaces and adapters
+  cli/                # CLI commands and input/output handling
+  common/             # config, schemas, errors, shared utilities
+  core/               # command/operation logic
+    analysis/         # metric scoring operations
+    extraction/       # entity and keyword extraction operations
+    generation/       # summarize, title, outline, tag operations
+    relevance/        # compare and rank operations
+  providers/          # model/provider interfaces and adapters
+  service/            # application runtime and orchestration
+  schemas/            # shared request and response models
 ```
 
 ### `cli`
-
 Responsibilities:
-
 - Parse command options
 - Load JSON from `stdin` or `--file`
 - Validate user-friendly request shape
@@ -383,73 +370,53 @@ Responsibilities:
 - Emit JSON to `stdout` / `--out`
 
 ### `common`
-
 Responsibilities:
-
 - Config loading and validation
 - Shared error types
 - Shared schema helpers (simple public schemas + optional internal normalized schemas)
 
 ### `core`
-
 Responsibilities:
-
 - Implement command logic
 - Use provider interfaces instead of provider SDKs directly
 - Normalize outputs into simple default JSON
 
 
 ## Provider / Interface Layer (Extensibility)
-
 The provider layer allows core operations to work with different backends without changing command
 logic.
 
-Primary use case:
+The primary purpose of this layer is to support a diverse set of local and remote generative models via the Transformers library, Ollama or through an existing service API.
 
-- Swap generative model backends (local HF, remote API, mock provider) while keeping
-  `summarize`/`compute` behavior stable.
+This layer provides the ability to swap generative model backends (local HF, remote API, mock provider) while keeping `title`, `outline`, `summarize`, `tag` and related command module behavior stable.
 
 ### Provider design goals
-
 - Interface-first (operations depend on protocols, not SDKs)
 - Lazy loading (avoid loading heavy models at import time)
-- Configurable selection (choose provider/model via config or CLI)
+- Configurable selection (choose provider/model via config)
 - Normalized outputs (providers return plain Python types)
 
-### Suggested provider structure
+### Suggested provider structure (planned)
+Build to the follow structure as necessary, start with the core modules required for a flexible provider interface and adapt existing models and modules as needed.
 
 ```text
 core/providers/
   registry.py              # names -> provider classes
   factory.py               # build providers from config
   errors.py                # provider-specific exceptions
-
   interfaces/
     generative.py          # generate(prompt, ...) -> list[str]
     embeddings.py          # embed(texts) -> vectors
-    nlp.py                 # parse/entities/sentence splitting
-    keyword.py             # keyword extraction interface
-
+    nlp.py                 # parse/entities/sentence splitting (spacy)
+    keyword.py             # keyword extraction interface (keybert)
   generative/
     huggingface.py
-    openai.py              # optional
-    mock.py                # tests/dev
-
+    openai.py              
   embeddings/
     sentence_transformers.py
-    mock.py
-
-  nlp/
-    spacy.py
-    mock.py
-
-  keyword/
-    keybert.py
-    mock.py
 ```
 
 ### Example interface (conceptual)
-
 ```python
 class GenerativeProvider(Protocol):
     def generate(self, prompt: str, **kwargs) -> list[str]:
@@ -457,7 +424,6 @@ class GenerativeProvider(Protocol):
 ```
 
 ### Dependency direction
-
 ```text
 cli -> common
 cli -> core
@@ -466,14 +432,12 @@ core/providers/* -> external SDKs
 ```
 
 Avoid:
-
 - CLI importing provider SDKs directly
 - Core operations returning provider-specific objects
 - Model initialization during module import
 
 
 ## Development
-
 ```bash
 pytest
 ruff check .
@@ -482,5 +446,4 @@ mypy src/
 
 
 ## Contributing
-
 Follow the project conventions in `AGENTS.md` and keep modules simple, focused, and easy to read.

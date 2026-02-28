@@ -39,13 +39,6 @@ TAGS_PROMPTS = [
 ]
 
 
-# Define database settings class
-class DatabaseSettings(BaseSettings):
-    """Define database connection settings"""
-    file: str = "sql_app.db"
-    url: str = "sqlite:///./sql_app.db"
-    connect_args: dict = {"check_same_thread": False}
-
 # Define Transformers generation settings 
 class PromptSettings(BaseSettings):
     """Define default keyword arguments for Transformers generation"""
@@ -86,9 +79,6 @@ class ApplicationSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file='.env')
     name: str = "NLP Service"
     version: str = "0.0.1"
-    
-    # Get database settings
-    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     
     # Load user transformers configurations if they exist
     if TRANSFORMERS_PATH.exists():

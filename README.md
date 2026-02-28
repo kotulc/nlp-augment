@@ -29,8 +29,8 @@ Each command takes input in the same shape (defined below) and returns results b
 | Command | Purpose | Output Shape (Default) |
 |---------|---------|------------------------|
 | `mdaug analyze` | Compute metrics (sentiment, toxicity, etc.) |  `{metric: value, ...}` |
-| `mdaug compare` | Compare one or more text inputs | `{input: score, ...}` |
-| `mdaug extract` | Extract entities/keywords from the supplied content | `{entities: [...], ...}` |
+| `mdaug compare` | Compare one or more text inputs | `[score, ...]` |
+| `mdaug extract` | Extract entities/keywords from the supplied content | `{entities: {...}, ...}` |
 | `mdaug outline` | Generate an outline of the supplied conent | `{outline: "...", ...}` |
 | `mdaug rank` | Rank items against query text | `[most_relevant, ..., least_relevant]` |
 | `mdaug summarize` | Generate one or more sumamries | `{summary: "...", ...}` |
@@ -57,35 +57,236 @@ source .venv/bin/activate
 pip install -e .
 ```
 
+
 ### Input
-Each command can take a json string as input via stdin:
+
+### Source
+Each command accepts JSON from exactly one source:
+
+- JSON from `stdin` by default
+- `--file <path>` reads JSON from a file
+
+
+### Format
+All commands expect JSON in the same basic format, a list or dictionary of the content to be supplied to the requested operation. The only difference between the two is in how results are returned: for a list results are ordered respective to the source content. If a dictionary is supplied the results will reference the keys (ids) of the content.
+
+```json
+# Input provided as an ordered list of content strings (no key/ids to reference)
+["first content chunk to process", "second content chunk", ...]
+
+# Input provided as key-value pairs where results will reference the supplied keys
+{"content-id1": "content value1", "content-id2": "content value2", ...}
 ```
-[
-  {"id": "doc-001:0", "slug": "my-doc.md"},
-  {"id": "doc-001:1", "title": "Example doc"},
-  {"id": "doc-001:2", "content": "First text block."},
-  {"id": "doc-001:3", "content": "Second text block."}
-]
+
+Supplied JSON with a single level of nesting is also acceptable and interpreted as groups of individual requests. Each parent level collection will be processed in isolation from all other groups in a batch fashion. 
+
+```json
+# Input groups may be provided as a list of lists, or list of dicts
+[{"content-id": "content value", ...}, {"content-id": "content value", ...}]
+
+# Input provided as key-value pairs return results that reference the supplied keys
+{"group1": {"content-id": "request1 content", ...}, "group2": {"content-id": "request2 content", ...}]
 ```
-NOTE: The value of the "id" key is used as a reference for comparison and ranking operations
 
 
 ### Output
-For a given input all commands return json via stdout: 
+
+### Destination
+Each command directs output json to the defined output stream:
+
+- JSON to `stdout` by default
+- `--out <path>` writes JSON to a file
+- Detailed logs/progress goes to `stderr`
+
+
+### Format
+All commands return JSON with the same item structure as the supplied request. If an ordered list of content is provided the results will be returned as a list of results with the same relative order. If a dictionary is provided the results will be returned as a dictionary with item keys matching each request.
+
+The examples below illustrate a single result for a given content item.
+
+
+#### `mdaug analyze`
+The `analyze` command computes the scores of a set of pre-defined metrics customizable via `config.yaml`.
+
+Request:
+```json
+["Natural language processing can enrich text with summaries and tags."]
 ```
+
+Result:
+```json
+[
+  {
+    "negative": 0.03,
+    "neutral": 0.22,
+    "positive": 0.75,
+    "polarity": 0.68,
+    "toxicity": 0.01
+  }
+]
+```
+
+
+#### `mdaug compare`
+The `compare` command evaluate the semantic similarity between the first content item and all remaining items. The results will always contain N-1 scores since evaluating the semantic similarity of text against itself always yeilds 1.00.
+
+Request:
+```json
+[
+  "Natural language processing can enrich text with summaries and tags.",
+  "NLP can enrich text with generated summaries and tags.",
+  "Text augmentation adds summary and tagging metadata.",
+  "Content can be transformed into structured NLP outputs."
+]
+```
+
+Result:
+```json
 {
-  "command": "analyze",
-  "results": {...},
-  "status": "ok",
-  "errors": [],
+  "NLP can enrich text with generated summaries and tags.": 0.93, 
+  "Content can be transformed into structured NLP outputs.": 0.78, 
+  "Text augmentation adds summary and tagging metadata.": 0.71
 }
 ```
 
-Results may optionally be returned as a json file with the `--out <file>` option:
 
-| File | Description |
-|------|-------------|
-| `<slug>.json` | All requested metrics, summaries, tags and results
+#### `mdaug extract`
+`extract` simply extracts keywords and entities from the supplied text and returns a dictionary of extracted keys and similarity score values.
+
+Request:
+```json
+["Natural language processing can enrich text with summaries and tags."]
+```
+
+Result:
+```json
+[
+  {
+    "entities": {},
+    "keywords": {
+      "Natural": 0.78,
+      "language": 0.65,
+      "text": 0.62
+    }
+  }
+]
+```
+
+
+#### `mdaug outline`
+The `outline` command generates a list of high-level summary points and their scores for a given body of text.
+
+Request:
+```json
+[
+  "Natural language processing tools such as these can enrich text based on the defined 
+  operations. Available operations for this tool include summarization and tagging."
+]
+```
+
+Result:
+```json
+[
+  {
+    "Natural language operations": 0.85,
+    "Summarization and tagging": 0.83
+  }
+]
+
+```
+
+
+#### `mdaug rank`
+The `rank` command returns ordered results and scores from a composite similarity metric that includes linguistic acceptability, ranking candidates in terms of completeness and not just similarity.
+
+Request:
+```json
+[
+  "Natural language processing can enrich text with summaries and tags.",
+  "NLP can enrich text with generated summaries and tags.",
+  "Text augmentation adds summary and tagging metadata.",
+  "Content can be transformed into structured NLP outputs."
+]
+```
+
+Result:
+```json
+{
+  "NLP can enrich text with generated summaries and tags.": 0.93,
+  "Text augmentation adds summary and tagging metadata.": 0.79,
+  "Content can be transformed into structured NLP outputs.": 0.65,
+}
+```
+
+
+#### `mdaug summarize`
+The `summarize` command generates a list of summaries of the supplied content with the number of results configurable via `config.yaml`.
+
+Request:
+```json
+[
+  "Natural language processing tools such as these can enrich text based on the defined 
+  operations. Available operations for this tool include summarization and tagging."
+]
+```
+
+Result:
+```json
+[
+  {
+    "Natural language processing": 0.89,
+    "Available operations for this tool": 0.82,
+    "Operations to enrich text": 0.77,
+  }
+]
+```
+
+
+#### `mdaug tag`
+The `tag` command generates a list of related words or concepts relating to the supplied content with the number of results configurable via `config.yaml`.
+
+Request:
+```json
+[
+  "Natural language processing tools such as these can enrich text based on the defined 
+  operations. Available operations for this tool include summarization and tagging."
+]
+```
+
+Result:
+```json
+[
+  {
+    "natural language": 0.92,
+    "text": 0.90,
+    "operations": 87,
+    "tool": 0.85
+  }
+]
+```
+
+
+#### `mdaug title`
+The `title` command generates a list of potential headings for the supplied content with the number of results configurable via `config.yaml`.
+
+Request:
+```json
+[
+  "Natural language processing tools such as these can enrich text based on the defined 
+  operations. Available operations for this tool include summarization and tagging."
+]
+```
+
+Result:
+```json
+[
+  {
+    "NLP Operations and Tools": 0.97,
+    "Natural Language Operations": 0.95,
+    "Language Processing Tools": 0.89,
+  }
+]
+```
 
 
 ## Architecture
@@ -93,8 +294,11 @@ Results may optionally be returned as a json file with the `--out <file>` option
 nlp-mdaug/
 ├── src/mdaug/        # Main package source
 │   ├── cli/          # Command-line interface
-│   ├── common/       # Config and shared modules and utils
-│   └── core/         # Operational logic 
+│   ├── common/       # Configuration and shared utils
+│   ├── core/         # Operational logic
+│   ├── providers/    # Provider adapter layer
+│   ├── service/      # Runtime and orchestration
+│   └── schemas/      # Shared request and responses
 ├── tests/            # Test suite (pytest)
 ├── examples/         # Sample input & output
 ├── config.yaml       # Default app-level configurations
