@@ -28,6 +28,8 @@ def test_cli_command_reads_stdin_json(monkeypatch, capsys):
     assert result[0]["command"] == "analyze"
     assert result[0]["status"] == "not_implemented"
     assert result[0]["id"] is None
+    assert result[0]["provider"] == "mock"
+    assert "length" in result[0]["preview"]
 
 
 def test_cli_command_reads_file_and_writes_out_file(tmp_path):
@@ -44,6 +46,7 @@ def test_cli_command_reads_file_and_writes_out_file(tmp_path):
     assert result["item1"]["command"] == "tag"
     assert result["item1"]["status"] == "not_implemented"
     assert result["item1"]["id"] == "item1"
+    assert result["item1"]["provider"] == "mock"
 
 
 def test_cli_invalid_json_returns_error(tmp_path):

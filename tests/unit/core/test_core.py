@@ -17,6 +17,8 @@ def test_run_command_supported(command):
     assert result[0]["command"] == command
     assert result[0]["status"] == "not_implemented"
     assert result[0]["id"] is None
+    assert "provider" in result[0]
+    assert "preview" in result[0]
 
 
 def test_run_command_mirrors_dictionary_shape():
@@ -28,6 +30,8 @@ def test_run_command_mirrors_dictionary_shape():
     assert "item1" in result
     assert result["item1"]["id"] == "item1"
     assert result["item1"]["status"] == "not_implemented"
+    assert result["item1"]["provider"] == "mock"
+    assert isinstance(result["item1"]["preview"], dict)
 
 
 def test_run_command_invalid_command():
