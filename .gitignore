@@ -10,7 +10,9 @@ __pycache__/
 AGENTS.md
 
 # Distribution / packaging
-.github/
+.github/*
+!.github/workflows/
+!.github/workflows/ci.yml
 .Python
 build/
 develop-eggs/

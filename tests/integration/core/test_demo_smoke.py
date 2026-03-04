@@ -19,10 +19,6 @@ DEMO_TARGETS = (
 @pytest.mark.parametrize("module_name,function_name", DEMO_TARGETS)
 def test_demo_function_runs_without_error(module_name: str, function_name: str):
     """Run each available demo function and ensure it completes without raising."""
-    try:
-        module = importlib.import_module(module_name)
-    except ModuleNotFoundError as exc:
-        pytest.skip(f"Legacy dependency not available yet: {exc}")
-
+    module = importlib.import_module(module_name)
     demo_function = getattr(module, function_name)
     demo_function()

@@ -33,16 +33,22 @@ def run_group_operation(command: str, group: RequestGroup, providers: ProviderBu
     if len(items) < 2:
         return {}
 
-    query_id, query_content = items[0]
+    _, query_content = items[0]
     candidate_items = items[1:]
     candidate_contents = [content for _, content in candidate_items]
     candidate_scores = providers.relevance.score(query_content, candidate_contents)
 
     if group.shape == "list":
         mapping = candidate_scores
+        content_by_key = {content: content for _, content in candidate_items}
     else:
         mapping = {
             item_id: candidate_scores.get(content, 0.0)
+            for item_id, content in candidate_items
+            if item_id is not None
+        }
+        content_by_key = {
+            item_id: content
             for item_id, content in candidate_items
             if item_id is not None
         }
@@ -54,7 +60,8 @@ def run_group_operation(command: str, group: RequestGroup, providers: ProviderBu
     # For rank, bias toward concise candidates to differ from compare.
     adjusted = {}
     for key, score in sorted_mapping.items():
-        word_count = len(key.split()) if isinstance(key, str) else 1
+        content = content_by_key.get(key, key) if isinstance(key, str) else ""
+        word_count = len(content.split()) if isinstance(content, str) else 1
         adjusted[key] = round(max(0.0, score * (1.0 - min(0.3, word_count * 0.02))), 3)
 
     return _sorted_scores(adjusted)

@@ -64,6 +64,21 @@ def test_compare_uses_candidate_ids_for_dict_shape():
     assert set(result.keys()) == {"a", "b"}
 
 
+def test_rank_dict_shape_penalizes_candidate_content_length():
+    """Rank for dict input applies length penalty using candidate content, not ids."""
+    request = normalize_request(
+        {
+            "q": "alpha beta",
+            "a": "alpha beta short",
+            "b": "alpha beta many extra words for stronger length penalty",
+        }
+    )
+    result = run_command("rank", request)
+
+    assert set(result.keys()) == {"a", "b"}
+    assert result["a"] > result["b"]
+
+
 def test_run_command_invalid_command():
     """Unsupported commands return a structured invalid_command payload."""
     request = normalize_request(["sample"])
