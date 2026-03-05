@@ -1,4 +1,4 @@
-"""Relevance utilities for default providers."""
+﻿"""Relevance utilities for default providers."""
 
 from math import sqrt
 
@@ -58,7 +58,7 @@ def maximal_marginal_relevance(
     candidates: list[str],
     sim_lambda: float = 0.5,
     top_n: int = 10,
-) -> tuple[list[str], list[float]]:
+    ) -> tuple[list[str], list[float]]:
     """Select candidates balancing query relevance and inter-candidate diversity."""
     deduped_candidates = list(dict.fromkeys(candidate for candidate in candidates if candidate))
     if not deduped_candidates or top_n <= 0:

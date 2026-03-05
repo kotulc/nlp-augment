@@ -1,4 +1,4 @@
-"""Provider configuration loading with deterministic precedence rules."""
+﻿"""Provider configuration loading with deterministic precedence rules."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -39,7 +39,7 @@ def _validated_provider_map(values: dict[str, object]) -> dict[str, str]:
 
 def load_provider_settings(
     config_path: str | Path | None = None,
-) -> ProviderSettings:
+    ) -> ProviderSettings:
     """Load provider settings with precedence: config.yaml -> default."""
     path = Path(config_path) if config_path else DEFAULT_CONFIG_PATH
 

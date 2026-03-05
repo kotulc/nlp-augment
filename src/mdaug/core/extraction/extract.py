@@ -1,4 +1,4 @@
-"""Extraction demo helpers backed by refactored providers."""
+﻿"""Extraction demo helpers backed by refactored providers."""
 
 from mdaug.common.sample import SAMPLE_TEXT
 from mdaug.providers.factory import get_provider_bundle
@@ -25,7 +25,7 @@ def extract_related(
     min_length: int = 1,
     max_length: int = 3,
     top_n: int = 10,
-) -> tuple[list[str], list[float]]:
+    ) -> tuple[list[str], list[float]]:
     """Generate related tags via generative provider and apply length filters."""
     generated = get_provider_bundle().generative.generate(content, operation="tag")
     items = [(tag, score) for tag, score in generated.items() if min_length <= len(tag.split()) <= max_length]

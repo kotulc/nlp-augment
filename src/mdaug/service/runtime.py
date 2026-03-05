@@ -1,4 +1,4 @@
-"""Runtime orchestration for command routing."""
+﻿"""Runtime orchestration for command routing."""
 
 from mdaug.cli.commands import COMMANDS
 from mdaug.core.operations import GROUP_COMMANDS, ITEM_COMMANDS, run_group_operation, run_item_operation
@@ -10,7 +10,7 @@ def run_command(
     command: str,
     request: NormalizedRequest,
     providers: ProviderBundle | None = None,
-) -> dict | list:
+    ) -> dict | list:
     """Run a command stub and return a result mirrored to request shape."""
     if command not in COMMANDS:
         return {"error": "invalid_command", "message": f"Unsupported command: {command}"}

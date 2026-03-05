@@ -1,4 +1,4 @@
-"""Generation demo helpers backed by refactored providers."""
+﻿"""Generation demo helpers backed by refactored providers."""
 
 from mdaug.common.sample import SAMPLE_TEXT
 from mdaug.providers.factory import get_provider_bundle
@@ -18,7 +18,7 @@ def generate_summary(
     format: str | None = None,
     tone: str | None = None,
     **kwargs,
-) -> list[str]:
+    ) -> list[str]:
     """Generate candidate summary strings and return parsed sentence-like items."""
     prompt_text = f"{prompt} in a {tone} tone" if tone else prompt
     operation = format if format else "summarize"

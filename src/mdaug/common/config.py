@@ -1,4 +1,4 @@
-"""Common configuration entrypoints for runtime settings."""
+﻿"""Common configuration entrypoints for runtime settings."""
 
 from functools import lru_cache
 from pathlib import Path
@@ -9,6 +9,6 @@ from mdaug.common.provider_config import ProviderSettings, load_provider_setting
 @lru_cache(maxsize=1)
 def get_provider_settings(
     config_path: str | Path | None = None,
-) -> ProviderSettings:
+    ) -> ProviderSettings:
     """Load cached provider settings from config.yaml or defaults."""
     return load_provider_settings(config_path=config_path)

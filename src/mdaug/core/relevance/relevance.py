@@ -1,4 +1,4 @@
-"""Deterministic relevance helpers kept for legacy demo compatibility."""
+﻿"""Deterministic relevance helpers kept for legacy demo compatibility."""
 
 
 def _normalize(text: str) -> str:
@@ -55,7 +55,7 @@ def maximal_marginal_relevance(
     candidates: list[str],
     sim_lambda: float = 0.5,
     top_n: int = 10,
-) -> tuple[list[str], list[float]]:
+    ) -> tuple[list[str], list[float]]:
     """Select diverse candidates balancing relevance and novelty."""
     if top_n <= 0 or not candidates:
         return [], []

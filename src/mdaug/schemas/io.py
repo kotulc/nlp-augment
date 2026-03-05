@@ -1,4 +1,4 @@
-"""Input normalization and output mirroring for CLI JSON payloads."""
+﻿"""Input normalization and output mirroring for CLI JSON payloads."""
 
 from dataclasses import dataclass
 from typing import Literal
@@ -184,7 +184,7 @@ def normalize_request(payload: object) -> NormalizedRequest:
 def map_results(
     request: NormalizedRequest,
     item_mapper,
-):
+    ):
     """Map normalized request items and return mirrored result shape."""
     group_outputs: list[list | dict] = []
     for group in request.groups:

@@ -1,4 +1,4 @@
-"""Provider factory and default registry construction."""
+﻿"""Provider factory and default registry construction."""
 
 from dataclasses import dataclass
 from functools import lru_cache
@@ -43,7 +43,7 @@ def build_default_registry() -> ProviderRegistry:
 def create_provider_bundle(
     settings: ProviderSettings,
     registry: ProviderRegistry | None = None,
-) -> ProviderBundle:
+    ) -> ProviderBundle:
     """Create a provider bundle from settings and a provider registry."""
     provider_registry = registry if registry is not None else build_default_registry()
 
@@ -64,7 +64,7 @@ def create_provider_bundle(
 def build_provider_bundle(
     config_path: str | None = None,
     registry: ProviderRegistry | None = None,
-) -> ProviderBundle:
+    ) -> ProviderBundle:
     """Build a provider bundle using config.yaml provider settings."""
     settings = load_provider_settings(config_path=config_path)
     return create_provider_bundle(settings=settings, registry=registry)
