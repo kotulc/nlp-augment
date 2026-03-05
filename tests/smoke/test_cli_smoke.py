@@ -130,25 +130,30 @@ def test_cli_missing_required_content_returns_error(monkeypatch, capsys):
     assert result["error"] == "invalid_input"
 
 
-def test_cli_provider_override_beats_env(monkeypatch, capsys):
-    """CLI provider overrides take precedence over environment provider settings."""
-    monkeypatch.setenv("MDAUG_PROVIDER_ANALYSIS", "missing")
+def test_cli_unknown_provider_in_config_returns_invalid_config(monkeypatch, tmp_path, capsys):
+    """Unknown config provider values return invalid_config with non-zero exit code."""
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("providers:\n  analysis: unknown\n", encoding="utf-8")
     monkeypatch.setattr("sys.stdin", io.StringIO('["Sample input"]'))
 
-    exit_code = main(["analyze", "--provider-analysis", "mock"])
-    result = json.loads(capsys.readouterr().out)
-
-    assert exit_code == 0
-    assert isinstance(result, list)
-    assert "positive" in result[0]
-
-
-def test_cli_unknown_provider_returns_invalid_config(monkeypatch, capsys):
-    """Unknown provider values return invalid_config with non-zero exit code."""
-    monkeypatch.setattr("sys.stdin", io.StringIO('["Sample input"]'))
-
-    exit_code = main(["analyze", "--provider-analysis", "unknown"])
+    exit_code = main(["analyze", "--config", str(config_path)])
     result = json.loads(capsys.readouterr().out)
 
     assert exit_code == 1
     assert result["error"] == "invalid_config"
+
+
+def test_cli_runtime_failure_returns_structured_error(monkeypatch, capsys):
+    """Runtime provider failures emit JSON runtime_error payload and non-zero exit code."""
+    monkeypatch.setattr("sys.stdin", io.StringIO('["Sample input"]'))
+
+    def _raise_runtime_error(*_, **__):
+        raise RuntimeError("model backend unavailable")
+
+    monkeypatch.setattr("mdaug.cli.app.run_command", _raise_runtime_error)
+
+    exit_code = main(["analyze"])
+    result = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert result["error"] == "runtime_error"

@@ -22,10 +22,6 @@ def build_parser() -> argparse.ArgumentParser:
         command_parser.add_argument("--file", dest="file_path")
         command_parser.add_argument("--out", dest="out_path")
         command_parser.add_argument("--config", dest="config_path")
-        command_parser.add_argument("--provider-analysis", dest="provider_analysis")
-        command_parser.add_argument("--provider-extraction", dest="provider_extraction")
-        command_parser.add_argument("--provider-generative", dest="provider_generative")
-        command_parser.add_argument("--provider-relevance", dest="provider_relevance")
 
     return parser
 
@@ -108,23 +104,18 @@ def main(argv: list[str] | None = None) -> int:
         _emit_error(exc.code, exc.message, args.out_path)
         return 1
 
-    overrides = {
-        "analysis": args.provider_analysis,
-        "extraction": args.provider_extraction,
-        "generative": args.provider_generative,
-        "relevance": args.provider_relevance,
-    }
-
     try:
-        providers = build_provider_bundle(
-            config_path=args.config_path,
-            overrides=overrides,
-        )
+        providers = build_provider_bundle(config_path=args.config_path)
     except (ValueError, KeyError) as exc:
         _emit_error("invalid_config", str(exc), args.out_path)
         return 1
 
-    result = run_command(args.command, request, providers=providers)
+    try:
+        result = run_command(args.command, request, providers=providers)
+    except Exception as exc:
+        _emit_error("runtime_error", str(exc), args.out_path)
+        return 1
+
     try:
         _write_result(result, args.out_path)
     except OSError as exc:

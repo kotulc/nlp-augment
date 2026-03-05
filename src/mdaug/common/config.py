@@ -9,7 +9,6 @@ from mdaug.common.provider_config import ProviderSettings, load_provider_setting
 @lru_cache(maxsize=1)
 def get_provider_settings(
     config_path: str | Path | None = None,
-    overrides: dict[str, str] | None = None,
 ) -> ProviderSettings:
-    """Load cached provider settings with CLI/environment/config precedence."""
-    return load_provider_settings(config_path=config_path, overrides=overrides)
+    """Load cached provider settings from config.yaml or defaults."""
+    return load_provider_settings(config_path=config_path)

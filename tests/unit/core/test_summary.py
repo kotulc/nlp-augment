@@ -19,8 +19,6 @@ def test_build_parser_supports_all_commands(command):
             "out.json",
             "--config",
             "config.yaml",
-            "--provider-analysis",
-            "mock",
         ]
     )
 
@@ -28,7 +26,6 @@ def test_build_parser_supports_all_commands(command):
     assert args.file_path == "in.json"
     assert args.out_path == "out.json"
     assert args.config_path == "config.yaml"
-    assert args.provider_analysis == "mock"
 
 
 def test_build_parser_requires_known_command():

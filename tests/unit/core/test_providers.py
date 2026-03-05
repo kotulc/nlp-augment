@@ -23,9 +23,9 @@ def test_provider_registry_unknown_role_or_name():
     registry = ProviderRegistry()
 
     with pytest.raises(KeyError):
-        registry.resolve("analysis", "mock")
+        registry.resolve("analysis", "default")
 
-    registry.register("analysis", "mock", object)
+    registry.register("analysis", "default", object)
     with pytest.raises(KeyError):
         registry.resolve("analysis", "missing")
 
@@ -37,101 +37,68 @@ def test_load_provider_settings_from_config_file(tmp_path: Path):
         "\n".join(
             [
                 "providers:",
-                "  analysis: mock",
-                "  extraction: mock",
-                "  generative: mock",
-                "  relevance: mock",
+                "  analysis: default",
+                "  extraction: default",
+                "  generative: default",
+                "  relevance: default",
             ]
         ),
         encoding="utf-8",
     )
 
-    settings = load_provider_settings(config_path=config_path, environ={})
+    settings = load_provider_settings(config_path=config_path)
 
     assert settings == ProviderSettings(
-        analysis="mock",
-        extraction="mock",
-        generative="mock",
-        relevance="mock",
+        analysis="default",
+        extraction="default",
+        generative="default",
+        relevance="default",
     )
 
 
-def test_load_provider_settings_env_overrides(tmp_path: Path):
-    """Environment variables override config provider settings."""
-    config_path = tmp_path / "config.yaml"
-    config_path.write_text("providers:\n  analysis: mock\n", encoding="utf-8")
-    env = {
-        "MDAUG_PROVIDER_ANALYSIS": "mock",
-        "MDAUG_PROVIDER_EXTRACTION": "mock",
-        "MDAUG_PROVIDER_GENERATIVE": "mock",
-        "MDAUG_PROVIDER_RELEVANCE": "mock",
-    }
-
-    settings = load_provider_settings(config_path=config_path, environ=env)
-    assert settings.analysis == "mock"
-    assert settings.extraction == "mock"
-    assert settings.generative == "mock"
-    assert settings.relevance == "mock"
-
-
-def test_load_provider_settings_cli_overrides_env_and_config(tmp_path: Path):
-    """CLI overrides take precedence over environment and config values."""
+def test_load_provider_settings_reads_only_config_values(tmp_path: Path):
+    """Provider settings are sourced from config when values are provided."""
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
         "\n".join(
             [
                 "providers:",
-                "  analysis: config_analysis",
-                "  extraction: config_extraction",
-                "  generative: config_generative",
-                "  relevance: config_relevance",
+                "  analysis: custom_analysis",
+                "  extraction: default",
+                "  generative: default",
+                "  relevance: default",
             ]
         ),
         encoding="utf-8",
     )
 
-    env = {
-        "MDAUG_PROVIDER_ANALYSIS": "env_analysis",
-        "MDAUG_PROVIDER_EXTRACTION": "env_extraction",
-    }
-    overrides = {
-        "analysis": "mock",
-        "extraction": "mock",
-        "generative": "mock",
-        "relevance": "mock",
-    }
-
-    settings = load_provider_settings(
-        config_path=config_path,
-        environ=env,
-        overrides=overrides,
-    )
+    settings = load_provider_settings(config_path=config_path)
 
     assert settings == ProviderSettings(
-        analysis="mock",
-        extraction="mock",
-        generative="mock",
-        relevance="mock",
+        analysis="custom_analysis",
+        extraction="default",
+        generative="default",
+        relevance="default",
     )
 
 
 def test_load_provider_settings_falls_back_to_defaults_when_missing_config(tmp_path: Path):
-    """Missing config and empty env/CLI values fall back to default provider names."""
+    """Missing config falls back to built-in default provider names."""
     config_path = tmp_path / "missing.yaml"
-    settings = load_provider_settings(config_path=config_path, environ={}, overrides={})
+    settings = load_provider_settings(config_path=config_path)
 
     assert settings == ProviderSettings()
 
 
 def test_create_provider_bundle_with_default_registry():
-    """Provider bundle creation returns deterministic mock provider selection."""
+    """Provider bundle creation returns default provider selection from settings."""
     settings = ProviderSettings()
     bundle = create_provider_bundle(settings=settings, registry=build_default_registry())
 
-    assert bundle.names.analysis == "mock"
-    assert bundle.names.extraction == "mock"
-    assert bundle.names.generative == "mock"
-    assert bundle.names.relevance == "mock"
+    assert bundle.names.analysis == "default"
+    assert bundle.names.extraction == "default"
+    assert bundle.names.generative == "default"
+    assert bundle.names.relevance == "default"
 
 
 def test_create_provider_bundle_unknown_provider_raises():
@@ -140,3 +107,16 @@ def test_create_provider_bundle_unknown_provider_raises():
 
     with pytest.raises(KeyError):
         create_provider_bundle(settings=settings, registry=build_default_registry())
+
+
+def test_build_default_registry_includes_default_provider_names():
+    """Default registry exposes only default provider names for each role."""
+    registry = build_default_registry()
+
+    assert registry.resolve("analysis", "default")
+    assert registry.resolve("extraction", "default")
+    assert registry.resolve("generative", "default")
+    assert registry.resolve("relevance", "default")
+
+    with pytest.raises(KeyError):
+        registry.resolve("analysis", "mock")

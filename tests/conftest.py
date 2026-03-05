@@ -1,14 +1,13 @@
-"""Deterministic mock providers used for testing and early refactor phases."""
+"""Shared test fixtures including mock provider doubles for deterministic test scenarios."""
 
-from mdaug.providers.interfaces import (
-    AnalysisProvider,
-    ExtractionProvider,
-    GenerativeProvider,
-    RelevanceProvider,
-)
+import pytest
+
+from mdaug.common.provider_config import ProviderSettings
+from mdaug.providers.factory import ProviderBundle
+from mdaug.providers.registry import ProviderRegistry
 
 
-class MockAnalysisProvider(AnalysisProvider):
+class MockAnalysisProvider:
     """Mock analysis provider with deterministic metric-like output."""
 
     def analyze(self, content: str) -> dict:
@@ -40,7 +39,7 @@ class MockAnalysisProvider(AnalysisProvider):
         }
 
 
-class MockExtractionProvider(ExtractionProvider):
+class MockExtractionProvider:
     """Mock extraction provider with deterministic keywords/entities output."""
 
     def extract(self, content: str) -> dict:
@@ -50,10 +49,11 @@ class MockExtractionProvider(ExtractionProvider):
         return {"entities": {}, "keywords": keywords}
 
 
-class MockGenerativeProvider(GenerativeProvider):
+class MockGenerativeProvider:
     """Mock generation provider returning operation-scoped candidate scores."""
 
     def generate(self, content: str, operation: str) -> dict:
+        _ = operation
         words = [word.strip(".,!?;:") for word in content.split() if word.strip(".,!?;:")]
         if not words:
             return {}
@@ -72,7 +72,7 @@ class MockGenerativeProvider(GenerativeProvider):
         }
 
 
-class MockRelevanceProvider(RelevanceProvider):
+class MockRelevanceProvider:
     """Mock relevance provider returning deterministic descending scores."""
 
     def score(self, content: str, candidates: list[str]) -> dict:
@@ -92,3 +92,31 @@ class MockRelevanceProvider(RelevanceProvider):
             )
             for candidate in candidates
         }
+
+
+@pytest.fixture
+def mock_registry() -> ProviderRegistry:
+    """Return a test-only provider registry containing deterministic mock providers."""
+    registry = ProviderRegistry()
+    registry.register("analysis", "mock", MockAnalysisProvider)
+    registry.register("extraction", "mock", MockExtractionProvider)
+    registry.register("generative", "mock", MockGenerativeProvider)
+    registry.register("relevance", "mock", MockRelevanceProvider)
+    return registry
+
+
+@pytest.fixture
+def mock_bundle() -> ProviderBundle:
+    """Return a deterministic mock provider bundle for direct test injection."""
+    return ProviderBundle(
+        analysis=MockAnalysisProvider(),
+        extraction=MockExtractionProvider(),
+        generative=MockGenerativeProvider(),
+        relevance=MockRelevanceProvider(),
+        names=ProviderSettings(
+            analysis="mock",
+            extraction="mock",
+            generative="mock",
+            relevance="mock",
+        ),
+    )

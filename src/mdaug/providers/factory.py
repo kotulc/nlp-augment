@@ -10,11 +10,11 @@ from mdaug.providers.interfaces import (
     GenerativeProvider,
     RelevanceProvider,
 )
-from mdaug.providers.mock import (
-    MockAnalysisProvider,
-    MockExtractionProvider,
-    MockGenerativeProvider,
-    MockRelevanceProvider,
+from mdaug.providers.default.provider import (
+    DefaultAnalysisProvider,
+    DefaultExtractionProvider,
+    DefaultGenerativeProvider,
+    DefaultRelevanceProvider,
 )
 from mdaug.providers.registry import ProviderRegistry
 
@@ -31,12 +31,12 @@ class ProviderBundle:
 
 
 def build_default_registry() -> ProviderRegistry:
-    """Build a default provider registry with deterministic mock providers."""
+    """Build the production provider registry with default provider implementations."""
     registry = ProviderRegistry()
-    registry.register("analysis", "mock", MockAnalysisProvider)
-    registry.register("extraction", "mock", MockExtractionProvider)
-    registry.register("generative", "mock", MockGenerativeProvider)
-    registry.register("relevance", "mock", MockRelevanceProvider)
+    registry.register("analysis", "default", DefaultAnalysisProvider)
+    registry.register("extraction", "default", DefaultExtractionProvider)
+    registry.register("generative", "default", DefaultGenerativeProvider)
+    registry.register("relevance", "default", DefaultRelevanceProvider)
     return registry
 
 
@@ -63,16 +63,10 @@ def create_provider_bundle(
 
 def build_provider_bundle(
     config_path: str | None = None,
-    overrides: dict[str, str] | None = None,
-    environ: dict[str, str] | None = None,
     registry: ProviderRegistry | None = None,
 ) -> ProviderBundle:
-    """Build a provider bundle using config/env/CLI precedence."""
-    settings = load_provider_settings(
-        config_path=config_path,
-        environ=environ,
-        overrides=overrides,
-    )
+    """Build a provider bundle using config.yaml provider settings."""
+    settings = load_provider_settings(config_path=config_path)
     return create_provider_bundle(settings=settings, registry=registry)
 
 

@@ -43,13 +43,16 @@ Each command takes input in the same shape (defined below) and returns results b
 
 
 ## Configuration
-All settings follow a four-tier priority: **CLI option -> env -> `config.yaml` -> default**.
-Place a `config.yaml` in your working directory to set application-wide defaults; pass CLI options
-to override on a per-run basis or set environment variables when deploying as part of a service.
+Provider backend selection is configured in `config.yaml` only.
+Place a `config.yaml` in your working directory to set application-wide defaults.
 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `transformers` | `None` | configuration settings for the `Transformers` library |
+
+### Provider Backends
+- `default` (default): model-backed providers for analysis, extraction, generation, and relevance.
+Test-only mock providers live under `tests/` and are not registered in production runtime.
 
 
 ## Quickstart
@@ -339,6 +342,7 @@ mdaug tag --file examples/text.json --out tagged.json
 - `invalid_input`: Input shape or item types do not match the command contract.
 - `invalid_output`: The `--out` destination is not writable.
 - `invalid_config`: Provider selection options are not registered.
+- `runtime_error`: Provider/model runtime failure (for example, missing optional dependencies).
 
 
 ## Architecture
@@ -376,7 +380,7 @@ The common package simply contains shared modules and utilities leveraged throug
 
 ```
 common/
-  provider_config.py  # Provider selection loading (CLI/env/config/default)
+  provider_config.py  # Provider selection loading (config/default)
   config.py           # Shared configuration entrypoints
 ```
 

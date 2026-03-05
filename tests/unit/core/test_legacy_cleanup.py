@@ -5,11 +5,13 @@ from pathlib import Path
 
 
 def test_no_legacy_imports_in_provider_runtime_modules():
-    """Active provider runtime modules do not reference legacy import paths."""
+    """Active provider runtime modules do not reference removed legacy import paths."""
     provider_paths = [
         Path("src/mdaug/providers/factory.py"),
+        Path("src/mdaug/providers/default/provider.py"),
+        Path("src/mdaug/providers/default/models.py"),
+        Path("src/mdaug/providers/default/relevance.py"),
         Path("src/mdaug/providers/interfaces.py"),
-        Path("src/mdaug/providers/mock.py"),
         Path("src/mdaug/providers/registry.py"),
         Path("src/mdaug/core/relevance/relevance.py"),
     ]

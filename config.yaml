@@ -1,0 +1,5 @@
+providers:
+  analysis: default
+  extraction: default
+  generative: default
+  relevance: default
