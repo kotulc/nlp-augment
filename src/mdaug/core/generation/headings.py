@@ -1,6 +1,7 @@
 """Heading and outline demo helpers backed by refactored providers."""
 
 from mdaug.common.sample import SAMPLE_TEXT
+from mdaug.providers.default.models import get_document_model
 from mdaug.providers.factory import get_provider_bundle
 
 
@@ -41,7 +42,8 @@ def get_description(content: str, top_n: int = 3) -> tuple[list[str], list[float
 
 def get_outline(content: str, n_sections: int = 3) -> tuple[list[str], list[float]]:
     """Generate outline candidates from section-like chunks."""
-    sections = [section.strip() for section in content.split(".") if section.strip()]
+    doc = get_document_model()(content)
+    sections = [sentence.text.strip() for sentence in doc.sents if sentence.text.strip()]
     if not sections:
         raise ValueError("Supplied content string must contain one or more sentences.")
 

@@ -1,6 +1,7 @@
-"""Style-analysis demo helpers backed by deterministic heuristics."""
+"""Style-analysis demo helpers backed by configured provider relevance scoring."""
 
 from mdaug.common.sample import NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
+from mdaug.providers.factory import get_provider_bundle
 
 
 DICTION_LABELS = ("formal", "concrete", "informal", "colloquial", "literary", "poetic", "abstract")
@@ -10,40 +11,41 @@ TONE_LABELS = ("dogmatic", "subjective", "neutral", "objective", "impartial")
 
 
 def _label_scores(content: str, labels: tuple[str, ...]) -> dict[str, float]:
-    """Generate deterministic normalized scores for a label set."""
-    token_count = max(1, len(content.split()))
-    scores = {}
-    for index, label in enumerate(labels):
-        seed = (sum(ord(char) for char in label) + token_count + index) % 97
-        scores[label] = round((seed + 1) / 100.0, 4)
+    """Score labels by semantic similarity through the configured relevance provider."""
+    candidates = [f"{label} writing style" for label in labels]
+    provider_scores = get_provider_bundle().relevance.score(content, candidates)
+    scores = {label: float(provider_scores.get(candidate, 0.0)) for label, candidate in zip(labels, candidates)}
+    total = sum(scores.values())
+    if total <= 0.0:
+        uniform = round(1.0 / max(1, len(labels)), 4)
+        return {label: uniform for label in labels}
 
-    total = sum(scores.values()) or 1.0
     return {label: round(score / total, 4) for label, score in scores.items()}
 
 
 def classify_content(content: str, labels: tuple[str, ...], multi_label: bool = False) -> dict[str, float]:
-    """Return deterministic classification scores for supplied labels."""
+    """Return provider-scored label distribution for supplied style labels."""
     _ = multi_label
     return _label_scores(content, labels)
 
 
 def score_diction(content: str) -> dict[str, float]:
-    """Return deterministic diction label scores."""
+    """Return diction label scores from provider-backed similarity scoring."""
     return classify_content(content, DICTION_LABELS)
 
 
 def score_genre(content: str) -> dict[str, float]:
-    """Return deterministic genre label scores."""
+    """Return genre label scores from provider-backed similarity scoring."""
     return classify_content(content, GENRE_LABELS)
 
 
 def score_mode(content: str) -> dict[str, float]:
-    """Return deterministic mode label scores."""
+    """Return mode label scores from provider-backed similarity scoring."""
     return classify_content(content, MODE_LABELS)
 
 
 def score_tone(content: str) -> dict[str, float]:
-    """Return deterministic tone label scores."""
+    """Return tone label scores from provider-backed similarity scoring."""
     return classify_content(content, TONE_LABELS)
 
 

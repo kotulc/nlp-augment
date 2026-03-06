@@ -12,12 +12,9 @@ from mdaug.providers.factory import get_provider_bundle
 
 
 def score_spam(content: str) -> dict[str, float]:
-    """Compute a deterministic spam probability proxy."""
-    lowered = content.lower()
-    spam_terms = ("congratulations", "click", "won", "gift card", "claim")
-    matches = sum(1 for term in spam_terms if term in lowered)
-    score = min(1.0, round((matches + content.count("!")) / 6.0, 3))
-    return {"spam": score}
+    """Compute spam score from analysis provider output."""
+    metrics = get_provider_bundle().analysis.analyze(content)
+    return {"spam": float(metrics.get("spam", 0.0))}
 
 
 def score_toxicity(content: str) -> dict[str, float]:

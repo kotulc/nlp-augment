@@ -59,6 +59,20 @@ def _fallback_keywords(content: str, top_n: int) -> list[str]:
     return unique_tokens[:top_n]
 
 
+def _unwrap_classification(result) -> list[dict]:
+    """Normalize transformers classification outputs into a list of dict items."""
+    if isinstance(result, list) and result and isinstance(result[0], list):
+        return result[0]
+
+    if isinstance(result, list):
+        return result
+
+    if isinstance(result, dict):
+        return [result]
+
+    return []
+
+
 @lru_cache(maxsize=1)
 def get_acceptability_model():
     """Return a CoLA-style acceptability scoring callable."""
@@ -247,14 +261,127 @@ def get_sentiment_model():
 
 @lru_cache(maxsize=1)
 def get_toxicity_model():
-    """Return a fast toxicity proxy scoring callable."""
+    """Return a toxicity scoring callable backed by a transformer model when available."""
+    classifier = None
+    model_loaded = False
+
+    toxic_terms = ("idiot", "stupid", "hate", "trash", "worthless", "moron", "dumb")
+
+    def _load_classifier():
+        """Load the toxicity classifier once, only when needed."""
+        nonlocal classifier, model_loaded
+        if model_loaded:
+            return classifier
+
+        model_loaded = True
+        try:
+            from transformers import pipeline
+            classifier = pipeline("text-classification", model="unitary/toxic-bert", top_k=None)
+        except Exception:
+            classifier = None
+
+        return classifier
 
     def score_toxicity(content: str) -> dict[str, float]:
-        """Compute toxicity proxy score from punctuation and toxic terms."""
+        """Compute toxicity score as probability-like value in [0.0, 1.0]."""
         lowered = content.lower()
-        toxic_terms = ("idiot", "stupid", "hate", "trash", "worthless")
+        has_toxic_cue = "!" in content or any(term in lowered for term in toxic_terms)
+        if not has_toxic_cue:
+            return {"score": 0.0}
+
+        loaded_classifier = _load_classifier()
+        if loaded_classifier is not None:
+            try:
+                predictions = _unwrap_classification(loaded_classifier(content, truncation=True))
+                if predictions:
+                    by_label = {
+                        str(item.get("label", "")).lower(): float(item.get("score", 0.0))
+                        for item in predictions
+                    }
+                    if "toxic" in by_label:
+                        return {"score": round(by_label["toxic"], 4)}
+
+                    return {"score": round(max(by_label.values(), default=0.0), 4)}
+            except Exception:
+                pass
+
         term_hits = sum(1 for term in toxic_terms if term in lowered)
         exclamations = content.count("!")
-        return {"score": min(1.0, round((term_hits + exclamations) / 6.0, 4))}
+        return {"score": min(1.0, round((term_hits + exclamations) / 8.0, 4))}
 
     return score_toxicity
+
+
+@lru_cache(maxsize=1)
+def get_spam_model():
+    """Return a spam scoring callable with legacy model path and fallback proxy."""
+    torch = None
+    spam_tokenizer = None
+    spam_classifier = None
+    model_loaded = False
+
+    spam_terms = ("congratulations", "winner", "won", "gift card", "claim", "click", "free", "offer")
+    spam_index = 1
+
+    def _load_classifier():
+        """Load the legacy spam classifier once, only when needed."""
+        nonlocal torch, spam_tokenizer, spam_classifier, spam_index, model_loaded
+        if model_loaded:
+            return spam_tokenizer, spam_classifier, torch, spam_index
+
+        model_loaded = True
+        try:
+            import torch as torch_module
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+            spam_tokenizer = AutoTokenizer.from_pretrained("AntiSpamInstitute/spam-detector-bert-MoE-v2.2")
+            spam_classifier = AutoModelForSequenceClassification.from_pretrained(
+                "AntiSpamInstitute/spam-detector-bert-MoE-v2.2"
+            )
+            torch = torch_module
+
+            labels = {
+                int(index): str(label).lower()
+                for index, label in spam_classifier.config.id2label.items()
+            }
+            matched = [index for index, label in labels.items() if "spam" in label]
+            if matched:
+                spam_index = matched[0]
+        except Exception:
+            torch = None
+            spam_tokenizer = None
+            spam_classifier = None
+
+        return spam_tokenizer, spam_classifier, torch, spam_index
+
+    def score_spam(content: str) -> dict[str, float]:
+        """Compute spam score as probability-like value in [0.0, 1.0]."""
+        lowered = content.lower()
+        has_spam_cue = (
+            any(term in lowered for term in spam_terms)
+            or "$" in content
+            or "http://" in lowered
+            or "https://" in lowered
+            or "www." in lowered
+            or "click here" in lowered
+        )
+        if not has_spam_cue:
+            return {"score": 0.0}
+
+        loaded_tokenizer, loaded_classifier, loaded_torch, loaded_spam_index = _load_classifier()
+        if loaded_tokenizer is not None and loaded_classifier is not None and loaded_torch is not None:
+            try:
+                inputs = loaded_tokenizer(content, return_tensors="pt", truncation=True)
+                with loaded_torch.no_grad():
+                    outputs = loaded_classifier(**inputs)
+
+                probabilities = loaded_torch.softmax(outputs.logits, dim=1).flatten()
+                score = float(probabilities[loaded_spam_index].item())
+                return {"score": round(score, 4)}
+            except Exception:
+                pass
+
+        matches = sum(1 for term in spam_terms if term in lowered)
+        return {"score": min(1.0, round((matches + content.count("!")) / 8.0, 4))}
+
+    return score_spam

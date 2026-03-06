@@ -13,6 +13,7 @@ from mdaug.providers.default.models import (
     get_generative_model,
     get_keyword_model,
     get_polarity_model,
+    get_spam_model,
     get_sentiment_model,
     get_toxicity_model,
 )
@@ -89,6 +90,7 @@ class DefaultAnalysisProvider(AnalysisProvider):
     def analyze(self, content: str) -> dict:
         sentiment_scores = get_sentiment_model()(content)
         polarity_score = float(get_polarity_model()(content)["score"])
+        spam_score = float(get_spam_model()(content)["score"])
         toxicity_score = float(get_toxicity_model()(content)["score"])
 
         return {
@@ -96,6 +98,7 @@ class DefaultAnalysisProvider(AnalysisProvider):
             "neutral": round(float(sentiment_scores["neutral"]), 4),
             "positive": round(float(sentiment_scores["positive"]), 4),
             "polarity": round(polarity_score, 4),
+            "spam": round(spam_score, 4),
             "toxicity": round(toxicity_score, 4),
         }
 

@@ -1,13 +1,15 @@
 """Polarity scoring demo helpers backed by refactored providers."""
 
 from mdaug.common.sample import NEGATIVE_TEXT, NEUTRAL_TEXT, POSITIVE_TEXT, SAMPLE_TEXT
+from mdaug.providers.default.models import get_document_model
 from mdaug.providers.factory import get_provider_bundle
 
 
 def _split_sentences(content: str) -> list[str]:
-    """Split text into sentence-like chunks without external dependencies."""
-    chunks = [chunk.strip() for chunk in content.replace("!", ".").replace("?", ".").split(".")]
-    return [chunk for chunk in chunks if chunk]
+    """Split text into sentence-like chunks using the configured document model path."""
+    doc = get_document_model()(content)
+    sentences = [sentence.text.strip() for sentence in doc.sents if sentence.text.strip()]
+    return sentences
 
 
 def score_polarity(content: str) -> dict[str, float]:
